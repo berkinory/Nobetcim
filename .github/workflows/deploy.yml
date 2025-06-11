@@ -7,6 +7,10 @@ on:
       - 'parser/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
