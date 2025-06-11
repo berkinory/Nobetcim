@@ -192,3 +192,7 @@ def main():
         print("\n\nProcess interrupted by user.")
     except Exception as e:
         print(f"\nUnexpected error: {e}")
+
+
+if __name__ == "__main__":
+    main()
