@@ -66,8 +66,12 @@ def make_request(url: str, method: str = "GET", **kwargs) -> requests.Response:
 
 def fetch_token() -> str:
     response = make_request(BASE_URL, stream=False)
-    soup = BeautifulSoup(response.content, "lxml")
-    token = soup.body.get("data-token")
+    try:
+        soup = BeautifulSoup(response.content, "lxml")
+    except:
+        soup = BeautifulSoup(response.content, "html.parser")
+    
+    token = soup.body.get("data-token") if soup.body else None
     response.close()
     del soup, response
     gc.collect()
@@ -89,7 +93,11 @@ def submit_query(plaka_kodu: str, tarih: str, token: str) -> None:
 
 def fetch_pharmacy_rows() -> list:
     response = make_request(f"{BASE_URL}?nobetci=Eczaneler", stream=False)
-    soup = BeautifulSoup(response.content, "lxml")
+    try:
+        soup = BeautifulSoup(response.content, "lxml")
+    except:
+        soup = BeautifulSoup(response.content, "html.parser")
+    
     table = soup.find("table", {"id": "searchTable"})
     rows = table.find("tbody").find_all("tr") if table else []
     

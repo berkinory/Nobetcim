@@ -1,4 +1,5 @@
 requests
-bs4
+beautifulsoup4
 upstash-redis
 python-dotenv
+lxml
