@@ -163,9 +163,6 @@ def process_multiple_dates(days=3):
 
 
 def run_scheduler():
-    print("🚀 Pharmacy Data Collector - 6 Hour Scheduler Started")
-    print(f"⏰ Next run times will be every 6 hours")
-    print("=" * 60)
 
     while True:
         try:
@@ -176,11 +173,6 @@ def run_scheduler():
 
             process_multiple_dates(3)
 
-            print(f"\n✅ Collection completed. Sleeping for 6 hours...")
-            print(
-                f"⏰ Next run at: {(current_time + timedelta(hours=6)).strftime('%d/%m/%Y %H:%M:%S')} (UTC+3)"
-            )
-            print("=" * 60)
 
             time.sleep(43200)
 
