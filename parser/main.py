@@ -1,5 +1,6 @@
 import json
 import time
+import gc
 from datetime import datetime, timedelta, timezone
 from parser import parser
 from city_mapping import get_city_name
@@ -129,6 +130,7 @@ def process_single_date(redis_client, date_str):
             failed += 1
 
         time.sleep(2)
+        gc.collect()
 
 
 def process_multiple_dates(days=3):

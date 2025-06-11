@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 from functools import wraps
+import gc
 
 BASE_URL = "https://www.turkiye.gov.tr/saglik-titck-nobetci-eczane-sorgulama"
 
@@ -10,9 +11,12 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0",
     "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
     "Referer": BASE_URL,
+    "Connection": "keep-alive",
+    "Accept-Encoding": "gzip, deflate",
 }
 
 session = requests.Session()
+session.headers.update(HEADERS)
 
 
 def clean_phone_number(phone_text):
@@ -50,7 +54,8 @@ def retry_on_failure(retries=5):
 
 @retry_on_failure()
 def make_request(url: str, method: str = "GET", **kwargs) -> requests.Response:
-    kwargs.setdefault("timeout", 6)
+    kwargs.setdefault("timeout", 5)
+    kwargs.setdefault("stream", True)
     if method.upper() == "GET":
         response = session.get(url, **kwargs)
     else:
@@ -60,9 +65,13 @@ def make_request(url: str, method: str = "GET", **kwargs) -> requests.Response:
 
 
 def fetch_token() -> str:
-    response = make_request(BASE_URL, headers=HEADERS)
-    soup = BeautifulSoup(response.text, "html.parser")
-    return soup.body.get("data-token")
+    response = make_request(BASE_URL, stream=False)
+    soup = BeautifulSoup(response.content, "lxml")
+    token = soup.body.get("data-token")
+    response.close()
+    del soup, response
+    gc.collect()
+    return token
 
 
 def submit_query(plaka_kodu: str, tarih: str, token: str) -> None:
@@ -72,45 +81,57 @@ def submit_query(plaka_kodu: str, tarih: str, token: str) -> None:
         "token": token,
         "btn": "Sorgula",
     }
-    make_request(f"{BASE_URL}?submit", method="POST", data=payload, headers=HEADERS)
+    response = make_request(f"{BASE_URL}?submit", method="POST", data=payload, stream=False)
+    response.close()
+    del response
+    gc.collect()
 
 
 def fetch_pharmacy_rows() -> list:
-    response = make_request(f"{BASE_URL}?nobetci=Eczaneler", headers=HEADERS)
-    soup = BeautifulSoup(response.text, "html.parser")
+    response = make_request(f"{BASE_URL}?nobetci=Eczaneler", stream=False)
+    soup = BeautifulSoup(response.content, "lxml")
     table = soup.find("table", {"id": "searchTable"})
-    return table.find("tbody").find_all("tr") if table else []
+    rows = table.find("tbody").find_all("tr") if table else []
+    
+    response.close()
+    del soup, response, table
+    gc.collect()
+    return rows
 
 
 def get_coordinates(index: int):
     url_coord = f"{BASE_URL}?harita=Goster&index={index}"
     payload = {"harita": "Goster", "index": str(index)}
 
-    res = make_request(url_coord, method="POST", data=payload, headers=HEADERS)
-    time.sleep(2)
+    response = make_request(url_coord, method="POST", data=payload, stream=False)
+    content = response.text
+    response.close()
+    
+    time.sleep(1)
 
-    lat_match = re.search(r"var latti = parseFloat\(([\d\.]+)\);", res.text)
-    lon_match = re.search(r"var longi = parseFloat\(([\d\.]+)\);", res.text)
+    lat_match = re.search(r"var latti = parseFloat\(([\d\.]+)\);", content)
+    lon_match = re.search(r"var longi = parseFloat\(([\d\.]+)\);", content)
+
+    del response, content
+    gc.collect()
 
     if lat_match and lon_match:
-        lat = float(lat_match.group(1))
-        lon = float(lon_match.group(1))
-        return lat, lon
+        return float(lat_match.group(1)), float(lon_match.group(1))
     else:
         return None, None
 
 
 def scrape_pharmacies(plaka_kodu: str, tarih: str) -> dict:
     start_time = time.time()
+    pharmacies = []
 
     try:
         token = fetch_token()
-        time.sleep(2)
+        time.sleep(1)
         submit_query(plaka_kodu, tarih, token)
-        time.sleep(2)
+        time.sleep(1)
         rows = fetch_pharmacy_rows()
 
-        pharmacies = []
         for idx, row in enumerate(rows):
             cols = [td.get_text(strip=True) for td in row.find_all("td")]
             if len(cols) >= 4:
@@ -120,16 +141,23 @@ def scrape_pharmacies(plaka_kodu: str, tarih: str) -> dict:
                 address = cols[3]
 
                 lat, lon = get_coordinates(idx)
-                pharmacies.append(
-                    {
-                        "Ad": name,
-                        "İlçe": district,
-                        "Adres": address,
-                        "Telefon": phone,
-                        "Lat": lat,
-                        "Long": lon,
-                    }
-                )
+                
+                pharmacy_data = {
+                    "Ad": name,
+                    "İlçe": district,
+                    "Adres": address,
+                    "Telefon": phone,
+                    "Lat": lat,
+                    "Long": lon,
+                }
+                pharmacies.append(pharmacy_data)
+                
+                del cols, pharmacy_data
+            
+            del row
+
+        del rows, token
+        gc.collect()
 
         return {
             "success": True,
@@ -139,6 +167,8 @@ def scrape_pharmacies(plaka_kodu: str, tarih: str) -> dict:
         }
 
     except Exception:
+        del pharmacies
+        gc.collect()
         return {
             "success": False,
             "tooktime": round(time.time() - start_time, 2),
@@ -152,7 +182,13 @@ def parser(plaka_kodu: str, tarih: str) -> dict:
         if not plaka_kodu.isdigit() or not (1 <= int(plaka_kodu) <= 81):
             return {"success": False, "tooktime": 0, "count": 0, "list": []}
         else:
-            return scrape_pharmacies(plaka_kodu, tarih)
+            result = scrape_pharmacies(plaka_kodu, tarih)
+            gc.collect()
+            return result
 
     except (IndexError, KeyboardInterrupt, Exception):
+        gc.collect()
         return {"success": False, "tooktime": 0, "count": 0, "list": []}
+
+if __name__ == "__main__":
+    print(parser("2", "13/06/2025"))
