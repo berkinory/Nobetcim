@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  pharmacy-scraper:
+    build: .
+    container_name: pharmacy-scraper
+    restart: unless-stopped
+    environment:
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - pharmacy-network
+
+networks:
+  pharmacy-network:
+    driver: bridge 

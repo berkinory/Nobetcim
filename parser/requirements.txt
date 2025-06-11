@@ -1,0 +1,4 @@
+requests
+bs4
+upstash-redis
+python-dotenv
