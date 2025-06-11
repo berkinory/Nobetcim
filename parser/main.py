@@ -38,10 +38,21 @@ def redis_has_data(redis_client, date_key):
         existing_data = redis_client.get(date_key)
         if existing_data:
             data = json.loads(existing_data)
-            return len(data) > 0
+            if len(data) == 0:
+                return False
+            
+            cities_found = set()
+            required_cities = {get_city_name("1").title(), get_city_name("45").title(), get_city_name("81").title()}
+            
+            for pharmacy in data:
+                city = pharmacy.get("city", "")
+                if city in required_cities:
+                    cities_found.add(city)
+            
+            return len(cities_found) == 3
         return False
     except Exception as e:
-        print(f"✗ Redis save error: {e}")
+        print(f"✗ Redis check error: {e}")
         return False
 
 
@@ -50,7 +61,7 @@ def save_to_redis(redis_client, date_key, plaka_kodu, pharmacies):
         if not redis_client:
             return False
 
-        city_name = get_city_name(plaka_kodu)
+        city_name = get_city_name(plaka_kodu).title()
         redis_data = []
 
         for pharmacy in pharmacies:
@@ -71,11 +82,11 @@ def save_to_redis(redis_client, date_key, plaka_kodu, pharmacies):
             existing_list = json.loads(existing_data)
             existing_list.extend(redis_data)
             redis_client.set(
-                date_key, json.dumps(existing_list, ensure_ascii=False), ex=345600
+                date_key, json.dumps(existing_list, ensure_ascii=False), ex=604800
             )
         else:
             redis_client.set(
-                date_key, json.dumps(redis_data, ensure_ascii=False), ex=345600
+                date_key, json.dumps(redis_data, ensure_ascii=False), ex=604800
             )
 
         return True

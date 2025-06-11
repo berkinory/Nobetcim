@@ -116,8 +116,8 @@ def scrape_pharmacies(plaka_kodu: str, tarih: str) -> dict:
             if len(cols) >= 4:
                 name = cols[0]
                 district = cols[1].split(" ")[0]
-                address = cols[2]
-                phone = clean_phone_number(cols[3])
+                phone = clean_phone_number(cols[2])
+                address = cols[3]
 
                 lat, lon = get_coordinates(idx)
                 pharmacies.append(
