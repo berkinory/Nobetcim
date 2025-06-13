@@ -91,12 +91,8 @@ interface PharmacyData {
 }
 
 export function usePharmacyQuery(enabled = true) {
-    return useApiQuery<PharmacyData[]>(
-        ['pharmacy'],
-        '/api/pharmacy',
-        {
-            refetchInterval: 7200000,
-            enabled,
-        }
-    );
+    return useApiQuery<PharmacyData[]>(['pharmacy'], '/api/pharmacy', {
+        refetchInterval: 7200000,
+        enabled,
+    });
 }

@@ -19,10 +19,11 @@ interface LocationPermissionDialogProps {
 export default function LocationPermissionDialog({
     open,
     onLocationRequest,
-}: LocationPermissionDialogProps) {
+    onOpenChange,
+}: LocationPermissionDialogProps & { onOpenChange: (v: boolean) => void }) {
     return (
-        <Dialog open={open}>
-            <DialogContent 
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent
                 className="max-w-xs rounded-lg [&>button]:hidden"
                 onEscapeKeyDown={(e) => e.preventDefault()}
                 onPointerDownOutside={(e) => e.preventDefault()}
@@ -35,7 +36,8 @@ export default function LocationPermissionDialog({
                         Konum İzinleri
                     </DialogTitle>
                     <DialogDescription className="text-center text-sm text-muted-foreground">
-                        En yakın eczaneleri gösterebilmek için konumunuza erişim izni gerekiyor.
+                        En yakın eczaneleri gösterebilmek için konumunuza erişim
+                        izni gerekiyor.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="flex flex-col gap-2 sm:flex-col">

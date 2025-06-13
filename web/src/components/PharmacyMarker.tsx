@@ -23,10 +23,14 @@ export default function PharmacyMarker({
     distance,
 }: PharmacyMarkerProps) {
     return (
-        <Marker longitude={pharmacy.long} latitude={pharmacy.lat} anchor="center">
+        <Marker
+            longitude={pharmacy.long}
+            latitude={pharmacy.lat}
+            anchor="center"
+        >
             <div className="w-8 h-8 bg-red-400 rounded-full flex items-center justify-center shadow-lg">
                 <Cross size={16} className="text-white" strokeWidth={3} />
             </div>
         </Marker>
     );
-} 
+}

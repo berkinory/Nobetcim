@@ -1,4 +1,10 @@
-import { Navigation, Satellite, Map as MapIcon, Plus, Minus } from 'lucide-react';
+import {
+    Navigation,
+    Satellite,
+    Map as MapIcon,
+    Plus,
+    Minus,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const MAP_STYLES = [
@@ -7,7 +13,8 @@ const MAP_STYLES = [
 ];
 
 const BUTTON_CLASS = 'h-8 w-8 md:h-10 md:w-10';
-const CONTROL_GROUP_CLASS = 'bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border';
+const CONTROL_GROUP_CLASS =
+    'bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border';
 
 interface MapStyleSelectorProps {
     mapStyle: string;
@@ -24,7 +31,11 @@ function MapStyleSelector({ mapStyle, onStyleChange }: MapStyleSelectorProps) {
                         return (
                             <Button
                                 key={style.id}
-                                variant={mapStyle === style.id ? "default" : "outline"}
+                                variant={
+                                    mapStyle === style.id
+                                        ? 'default'
+                                        : 'outline'
+                                }
                                 size="icon"
                                 onClick={() => onStyleChange(style.id)}
                                 title={`${style.name} Map`}
@@ -47,7 +58,12 @@ interface NavigationControlsProps {
     onLocationFocus: () => void;
 }
 
-function NavigationControls({ hasUserLocation, onZoomIn, onZoomOut, onLocationFocus }: NavigationControlsProps) {
+function NavigationControls({
+    hasUserLocation,
+    onZoomIn,
+    onZoomOut,
+    onLocationFocus,
+}: NavigationControlsProps) {
     return (
         <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
             <div className={CONTROL_GROUP_CLASS}>
@@ -106,13 +122,13 @@ export default function MapControls({
     onStyleChange,
     onZoomIn,
     onZoomOut,
-    onLocationFocus
+    onLocationFocus,
 }: MapControlsProps) {
     return (
         <>
-            <MapStyleSelector 
-                mapStyle={mapStyle} 
-                onStyleChange={onStyleChange} 
+            <MapStyleSelector
+                mapStyle={mapStyle}
+                onStyleChange={onStyleChange}
             />
             <NavigationControls
                 hasUserLocation={hasUserLocation}
@@ -122,4 +138,4 @@ export default function MapControls({
             />
         </>
     );
-} 
+}

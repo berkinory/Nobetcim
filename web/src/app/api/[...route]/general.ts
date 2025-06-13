@@ -22,7 +22,7 @@ const redis = new Redis({
     token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 });
 
-generalRoutes.get('/pharmacy', async (c) => {
+generalRoutes.get('/pharmacy', async () => {
     try {
         const dateKey = getCurrentActiveDate();
 
@@ -78,8 +78,6 @@ function getCurrentActiveDate(): string {
 
     return `${day}/${month}/${year}`;
 }
-
-
 
 async function getPharmacyData(
     dateKey: string
