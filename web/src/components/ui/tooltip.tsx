@@ -13,7 +13,6 @@ const TooltipProvider = ({
 );
 TooltipProvider.displayName = 'TooltipProvider';
 
-// Export a fast tooltip provider for instant tooltips
 const FastTooltipProvider = ({
     delayDuration = 0,
     ...props

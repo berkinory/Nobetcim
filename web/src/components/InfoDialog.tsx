@@ -17,7 +17,7 @@ export default function InfoDialog() {
     return (
         <>
             <div className="absolute top-4 right-4 z-10">
-                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
+                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-1 border border-border/50">
                     <Button
                         variant="outline"
                         size="icon"

@@ -1,6 +1,6 @@
 import {
     Navigation,
-    Satellite,
+    SatelliteDish,
     Map as MapIcon,
     Plus,
     Minus,
@@ -10,7 +10,7 @@ import InfoDialog from '@/components/InfoDialog';
 
 const MAP_STYLES = [
     { id: 'custom', name: 'Street', icon: MapIcon },
-    { id: 'satellite', name: 'Satellite', icon: Satellite },
+    { id: 'satellite', name: 'Satellite', icon: SatelliteDish },
 ];
 
 interface MapStyleSelectorProps {
@@ -21,8 +21,8 @@ interface MapStyleSelectorProps {
 function MapStyleSelector({ mapStyle, onStyleChange }: MapStyleSelectorProps) {
     return (
         <div className="absolute top-4 left-4 z-10">
-            <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
-                <div className="flex gap-1">
+            <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-1 border border-border/50">
+                <div className="flex gap-0.5">
                     {MAP_STYLES.map((style) => {
                         const Icon = style.icon;
                         return (
@@ -63,8 +63,8 @@ function NavigationControls({
 }: NavigationControlsProps) {
     return (
         <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-            <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
-                <div className="flex flex-col gap-1">
+            <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-1 border border-border/50">
+                <div className="flex flex-col gap-0.5">
                     <Button
                         variant="outline"
                         size="icon"
@@ -86,9 +86,8 @@ function NavigationControls({
                 </div>
             </div>
 
-            {/* Location Button */}
             {hasUserLocation && (
-                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
+                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-1 border border-border/50">
                     <Button
                         variant="outline"
                         size="icon"

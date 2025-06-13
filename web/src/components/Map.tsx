@@ -115,7 +115,6 @@ export function getCurrentLocation(): Promise<{
             },
             (error) => {
                 console.error('Location error:', error);
-                // Fallback to default location
                 resolve(MAP_CONFIG.LOCATION.DEFAULT_FALLBACK);
             },
             MAP_CONFIG.GEOLOCATION_OPTIONS
@@ -332,7 +331,6 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
             }
         }, [userLocation]);
 
-        // Memoize nearby pharmacies to avoid recalculating on every render
         const nearbyPharmacies = useMemo(() => {
             if (!pharmacies || !userLocation) return [];
 

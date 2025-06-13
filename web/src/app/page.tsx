@@ -25,11 +25,7 @@ export default function Home() {
 
     const mapRef = useRef<MapHandle>(null);
 
-    const {
-        data: pharmacies,
-        isLoading,
-        error,
-    } = usePharmacyQuery(hasGpsConfirmed);
+    const { data: pharmacies, error } = usePharmacyQuery(hasGpsConfirmed);
 
     const handleLocationFound = useCallback(
         (location: { latitude: number; longitude: number }) => {
@@ -83,6 +79,10 @@ export default function Home() {
         }),
         []
     );
+
+    if (error) {
+        toast.error('Eczane bilgileri yüklenirken hata oluştu');
+    }
 
     return (
         <>
