@@ -72,6 +72,9 @@ const config: Config = {
                 md: 'calc(var(--radius) - 2px)',
                 sm: 'calc(var(--radius) - 4px)',
             },
+            borderWidth: {
+                '3': '3px',
+            },
             keyframes: {
                 'accordion-down': {
                     from: {
@@ -97,11 +100,33 @@ const config: Config = {
                         'background-position': '-400% 0',
                     },
                 },
+                'location-ripple': {
+                    '0%': {
+                        transform: 'translate(-50%, -50%) scale(0.1)',
+                        opacity: '1',
+                    },
+                    '100%': {
+                        transform: 'translate(-50%, -50%) scale(2)',
+                        opacity: '0',
+                    },
+                },
+                'location-pulse': {
+                    '0%, 100%': {
+                        transform: 'scale(1)',
+                    },
+                    '50%': {
+                        transform: 'scale(1.1)',
+                    },
+                },
             },
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
                 'accordion-up': 'accordion-up 0.2s ease-out',
                 shine: 'shine 6s linear infinite',
+                'location-ripple': 'location-ripple 2s ease-out infinite',
+                'location-ripple-delayed':
+                    'location-ripple 2s ease-out infinite 1s',
+                'location-pulse': 'location-pulse 2s ease-in-out infinite',
             },
         },
     },

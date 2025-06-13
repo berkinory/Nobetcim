@@ -79,3 +79,24 @@ export function useApiMutation<TData, TVariables>(
         ...options,
     });
 }
+
+interface PharmacyData {
+    city: string;
+    district: string;
+    name: string;
+    phone: string;
+    address: string;
+    lat: number;
+    long: number;
+}
+
+export function usePharmacyQuery(enabled = true) {
+    return useApiQuery<PharmacyData[]>(
+        ['pharmacy'],
+        '/api/pharmacy',
+        {
+            refetchInterval: 7200000,
+            enabled,
+        }
+    );
+}

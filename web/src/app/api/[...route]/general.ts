@@ -24,13 +24,7 @@ const redis = new Redis({
 
 generalRoutes.get('/pharmacy', async (c) => {
     try {
-        const requestedDate = c.req.query('date');
-
-        const dateKey = requestedDate || getCurrentActiveDate();
-
-        if (!isValidDateFormat(dateKey)) {
-            return createResponse(false, 'Invalid date format.');
-        }
+        const dateKey = getCurrentActiveDate();
 
         const pharmacyData = await getPharmacyData(dateKey);
 
@@ -85,19 +79,7 @@ function getCurrentActiveDate(): string {
     return `${day}/${month}/${year}`;
 }
 
-function isValidDateFormat(dateStr: string): boolean {
-    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (!regex.test(dateStr)) return false;
 
-    const [day, month, year] = dateStr.split('/').map(Number);
-    const date = new Date(year, month - 1, day);
-
-    return (
-        date.getFullYear() === year &&
-        date.getMonth() === month - 1 &&
-        date.getDate() === day
-    );
-}
 
 async function getPharmacyData(
     dateKey: string

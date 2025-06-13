@@ -1,0 +1,55 @@
+'use client';
+
+import { MapPin, Navigation } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+
+interface LocationPermissionDialogProps {
+    open: boolean;
+    onLocationRequest: () => void;
+}
+
+export default function LocationPermissionDialog({
+    open,
+    onLocationRequest,
+}: LocationPermissionDialogProps) {
+    return (
+        <Dialog open={open}>
+            <DialogContent 
+                className="max-w-xs rounded-lg [&>button]:hidden"
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => e.preventDefault()}
+            >
+                <DialogHeader>
+                    <div className="flex items-center justify-center w-10 h-10 mx-auto mb-3 bg-primary/10 rounded-xl border border-primary/20">
+                        <MapPin className="w-5 h-5 text-primary" />
+                    </div>
+                    <DialogTitle className="text-center text-base font-semibold">
+                        Konum İzinleri
+                    </DialogTitle>
+                    <DialogDescription className="text-center text-sm text-muted-foreground">
+                        En yakın eczaneleri gösterebilmek için konumunuza erişim izni gerekiyor.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="flex flex-col gap-2 sm:flex-col">
+                    <Button
+                        onClick={onLocationRequest}
+                        variant="default"
+                        className="w-full h-9 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md text-sm"
+                        size="sm"
+                    >
+                        <Navigation className="w-4 h-4 mr-2" />
+                        Konum İzni Ver
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}

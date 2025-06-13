@@ -10,16 +10,13 @@ const ContentSecurityPolicy = `
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://openpanel.dev/op1.js unpkg.com/react-scan/dist/auto.global.js;
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  connect-src 'self' https://api.openpanel.dev/track;
+  connect-src 'self' https://api.openpanel.dev/track https://demotiles.maplibre.org https://api.maptiler.com;
   media-src 'self';
   worker-src 'self' blob:;
-  img-src 'self' https://lh3.googleusercontent.com https://avatars.githubusercontent.com data:;
+  img-src 'self' https://lh3.googleusercontent.com https://avatars.githubusercontent.com data: https://demotiles.maplibre.org https://api.maptiler.com;
 `;
 
 const nextConfig: NextConfig = {
-    turbopack: {
-        resolveExtensions: ['.ts', '.tsx'],
-    },
     devIndicators: false,
     reactStrictMode: true,
     compress: true,
@@ -56,7 +53,7 @@ const nextConfig: NextConfig = {
                     },
                     {
                         key: 'Permissions-Policy',
-                        value: 'camera=(), microphone=(), geolocation=()',
+                        value: 'camera=(), microphone=()',
                     },
                     {
                         key: 'Content-Security-Policy',

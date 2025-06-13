@@ -11,6 +11,19 @@
 @layer base {
     html {
         font-size: 16px;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    #__next {
+        height: 100%;
     }
 
     :root {
@@ -118,5 +131,9 @@
     }
     body {
         @apply bg-background text-foreground;
+        height: 100vh;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
     }
 }

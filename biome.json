@@ -1,0 +1,68 @@
+{
+    "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+    "vcs": {
+        "enabled": false,
+        "clientKind": "git",
+        "useIgnoreFile": false
+    },
+    "files": {
+        "ignoreUnknown": false,
+        "ignore": [
+            "node_modules",
+            ".next",
+            "dist",
+            "out",
+            ".vscode",
+            "migrations",
+            "public",
+            ".wrangler"
+        ]
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space",
+        "indentWidth": 4,
+        "lineWidth": 80
+    },
+    "organizeImports": {
+        "enabled": true
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "suspicious": {
+                "noConsoleLog": "off",
+                "noExplicitAny": "warn",
+                "noEmptyInterface": "off",
+                "noArrayIndexKey": "off"
+            },
+            "correctness": {
+                "noUnusedVariables": "warn",
+                "useExhaustiveDependencies": "warn"
+            },
+            "style": {
+                "noNonNullAssertion": "off",
+                "useImportType": "warn"
+            },
+            "a11y": {
+                "noAutofocus": "warn",
+                "useHtmlLang": "off",
+                "useFocusableInteractive": "off"
+            },
+            "security": {
+                "noDangerouslySetInnerHtml": "off"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "jsxQuoteStyle": "double",
+            "trailingCommas": "es5",
+            "arrowParentheses": "always",
+            "bracketSpacing": true,
+            "bracketSameLine": false
+        }
+    }
+}

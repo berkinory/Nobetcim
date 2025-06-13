@@ -75,7 +75,7 @@ export default async function RootLayout({
         <html
             lang="tr"
             suppressHydrationWarning
-            className={cn(geist.variable, menlo.variable)}
+            className={cn(geist.variable, menlo.variable, 'h-full')}
         >
             {process.env.NODE_ENV === 'development' && (
                 <head>
@@ -86,7 +86,7 @@ export default async function RootLayout({
                     />
                 </head>
             )}
-            <body className="font-sans">
+            <body className="font-sans h-full overflow-hidden">
                 <Toaster position="top-right" duration={4000} />
                 <OpenPanelComponent
                     clientId="e8ecae40-02e5-4767-9c07-b4423b4f43d6"
@@ -97,7 +97,11 @@ export default async function RootLayout({
                 />
                 <SEOProvider>
                     <QueryProvider>
-                        <ThemeProvider>{children}</ThemeProvider>
+                        <ThemeProvider>
+                            <div className="h-full overflow-hidden">
+                                {children}
+                            </div>
+                        </ThemeProvider>
                     </QueryProvider>
                 </SEOProvider>
             </body>
