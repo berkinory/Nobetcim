@@ -23,6 +23,7 @@ export default function InfoDialog() {
                         size="icon"
                         onClick={() => setIsInfoOpen(true)}
                         title="Information"
+                        aria-label="Uygulama bilgileri dialogunu aç"
                         className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Info size={16} className="md:w-5 md:h-5" />

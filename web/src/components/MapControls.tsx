@@ -36,6 +36,7 @@ function MapStyleSelector({ mapStyle, onStyleChange }: MapStyleSelectorProps) {
                                 size="icon"
                                 onClick={() => onStyleChange(style.id)}
                                 title={`${style.name} Map`}
+                                aria-label={`${style.name === 'Street' ? 'Sokak' : 'Uydu'} harita görünümüne geç`}
                                 className="h-8 w-8 md:h-10 md:w-10"
                             >
                                 <Icon size={16} className="md:w-5 md:h-5" />
@@ -70,6 +71,7 @@ function NavigationControls({
                         size="icon"
                         onClick={onZoomIn}
                         title="Zoom In"
+                        aria-label="Haritayı yakınlaştır"
                         className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Plus size={16} className="md:w-5 md:h-5" />
@@ -79,6 +81,7 @@ function NavigationControls({
                         size="icon"
                         onClick={onZoomOut}
                         title="Zoom Out"
+                        aria-label="Haritayı uzaklaştır"
                         className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Minus size={16} className="md:w-5 md:h-5" />
@@ -93,6 +96,7 @@ function NavigationControls({
                         size="icon"
                         onClick={onLocationFocus}
                         title="Center on my location"
+                        aria-label="Konumuma odaklan"
                         className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Navigation size={16} className="md:w-5 md:h-5" />

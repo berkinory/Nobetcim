@@ -86,7 +86,7 @@ export default function PharmacyDialog({
                             size="icon"
                             onClick={onClose}
                             className="flex-shrink-0 h-8 w-8 hover:bg-accent rounded-full"
-                            aria-label="Close"
+                            aria-label="Kapat"
                         >
                             <X size={20} />
                         </Button>
@@ -115,6 +115,7 @@ export default function PharmacyDialog({
                                     type="button"
                                     onClick={handleCall}
                                     className="text-sm text-primary hover:text-primary/80 transition-colors underline underline-offset-2"
+                                    aria-label={`Eczaneyi ara: ${pharmacy.phone}`}
                                 >
                                     {pharmacy.phone}
                                 </button>
@@ -142,6 +143,7 @@ export default function PharmacyDialog({
                                 variant="outline"
                                 size="sm"
                                 className="flex-1 h-9"
+                                aria-label="Google Haritalar'da aç"
                             >
                                 <FaGoogle size={16} />
                                 Google Haritalar
@@ -155,6 +157,7 @@ export default function PharmacyDialog({
                                 variant="outline"
                                 size="sm"
                                 className="flex-1 h-9"
+                                aria-label="Apple Haritalar'da aç"
                             >
                                 <FaApple size={16} />
                                 Apple Haritalar

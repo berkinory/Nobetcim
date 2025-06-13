@@ -438,37 +438,47 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
 
         if (!userLocation) {
             return (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <section
+                    className="w-full h-full flex items-center justify-center bg-gray-100"
+                    aria-live="polite"
+                    aria-label="Konum yükleniyor"
+                >
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
                         <p className="text-gray-600">Konum alınıyor...</p>
                     </div>
-                </div>
+                </section>
             );
         }
 
         return (
             <>
-                <MapGL
-                    {...viewState}
-                    style={{ width: '100%', height: '100%' }}
-                    mapStyle={mapStyleUrl}
-                    minZoom={MAP_CONFIG.ZOOM.MIN}
-                    maxZoom={MAP_CONFIG.ZOOM.MAX}
-                    maxBounds={maxBounds}
-                    onMove={handleMapMove}
-                    onLoad={handleMapLoad}
-                    ref={mapRef}
-                    attributionControl={false}
-                    logoPosition="bottom-left"
+                <div
+                    role="application"
+                    aria-label="Nöbetçi eczaneleri gösteren etkileşimli harita"
+                    className="w-full h-full"
                 >
-                    <UserLocationMarker
-                        longitude={userLocation.longitude}
-                        latitude={userLocation.latitude}
-                    />
+                    <MapGL
+                        {...viewState}
+                        style={{ width: '100%', height: '100%' }}
+                        mapStyle={mapStyleUrl}
+                        minZoom={MAP_CONFIG.ZOOM.MIN}
+                        maxZoom={MAP_CONFIG.ZOOM.MAX}
+                        maxBounds={maxBounds}
+                        onMove={handleMapMove}
+                        onLoad={handleMapLoad}
+                        ref={mapRef}
+                        attributionControl={false}
+                        logoPosition="bottom-left"
+                    >
+                        <UserLocationMarker
+                            longitude={userLocation.longitude}
+                            latitude={userLocation.latitude}
+                        />
 
-                    {nearbyPharmacies}
-                </MapGL>
+                        {nearbyPharmacies}
+                    </MapGL>
+                </div>
 
                 <PharmacyDialog
                     pharmacy={selectedPharmacy?.pharmacy || null}
