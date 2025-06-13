@@ -133,7 +133,7 @@ def process_single_date(redis_client, date_str):
         gc.collect()
 
 
-def process_multiple_dates(days=3):
+def process_multiple_dates(days=2):
     redis_client = get_redis_client()
     current_date = get_turkish_time()
 
