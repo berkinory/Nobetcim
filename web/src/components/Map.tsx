@@ -16,6 +16,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 
 import UserLocationMarker from '@/components/UserLocationMarker';
 import PharmacyMarker from '@/components/PharmacyMarker';
+import PharmacyDialog from '@/components/PharmacyDialog';
 
 const MAP_CONFIG = {
     TURKEY_BOUNDS: {
@@ -162,6 +163,10 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
             latitude: number;
             longitude: number;
         } | null>(initialLocation ?? null);
+        const [selectedPharmacy, setSelectedPharmacy] = useState<{
+            pharmacy: PharmacyData;
+            distance?: number;
+        } | null>(null);
 
         const mapRef = useRef<MapRef>(null);
         const watchIdRef = useRef<number | null>(null);
@@ -331,6 +336,17 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
             }
         }, [userLocation]);
 
+        const handlePharmacyClick = useCallback(
+            (pharmacy: PharmacyData, distance?: number) => {
+                setSelectedPharmacy({ pharmacy, distance });
+            },
+            []
+        );
+
+        const handleCloseDialog = useCallback(() => {
+            setSelectedPharmacy(null);
+        }, []);
+
         const nearbyPharmacies = useMemo(() => {
             if (!pharmacies || !userLocation) return [];
 
@@ -353,9 +369,10 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                         key={`${pharmacy.name}-${pharmacy.lat}-${pharmacy.long}`}
                         pharmacy={pharmacy}
                         distance={distance}
+                        onClick={handlePharmacyClick}
                     />
                 ));
-        }, [pharmacies, userLocation]);
+        }, [pharmacies, userLocation, handlePharmacyClick]);
 
         const imperativeHandle = useMemo(
             () => ({
@@ -387,28 +404,36 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
         useImperativeHandle(ref, () => imperativeHandle, [imperativeHandle]);
 
         return (
-            <MapGL
-                {...viewState}
-                style={{ width: '100%', height: '100%' }}
-                mapStyle={mapStyleUrl}
-                minZoom={MAP_CONFIG.ZOOM.MIN}
-                maxZoom={MAP_CONFIG.ZOOM.MAX}
-                maxBounds={maxBounds}
-                onMove={handleMapMove}
-                onLoad={handleMapLoad}
-                ref={mapRef}
-                attributionControl={false}
-                logoPosition="bottom-left"
-            >
-                {userLocation && (
-                    <UserLocationMarker
-                        longitude={userLocation.longitude}
-                        latitude={userLocation.latitude}
-                    />
-                )}
+            <>
+                <MapGL
+                    {...viewState}
+                    style={{ width: '100%', height: '100%' }}
+                    mapStyle={mapStyleUrl}
+                    minZoom={MAP_CONFIG.ZOOM.MIN}
+                    maxZoom={MAP_CONFIG.ZOOM.MAX}
+                    maxBounds={maxBounds}
+                    onMove={handleMapMove}
+                    onLoad={handleMapLoad}
+                    ref={mapRef}
+                    attributionControl={false}
+                    logoPosition="bottom-left"
+                >
+                    {userLocation && (
+                        <UserLocationMarker
+                            longitude={userLocation.longitude}
+                            latitude={userLocation.latitude}
+                        />
+                    )}
 
-                {nearbyPharmacies}
-            </MapGL>
+                    {nearbyPharmacies}
+                </MapGL>
+
+                <PharmacyDialog
+                    pharmacy={selectedPharmacy?.pharmacy || null}
+                    distance={selectedPharmacy?.distance}
+                    onClose={handleCloseDialog}
+                />
+            </>
         );
     }
 );

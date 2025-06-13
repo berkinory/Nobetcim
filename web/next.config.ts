@@ -7,7 +7,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://openpanel.dev/op1.js unpkg.com/react-scan/dist/auto.global.js;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://openpanel.dev/op1.js;
   style-src 'self' 'unsafe-inline';
   font-src 'self';
   connect-src 'self' https://api.openpanel.dev/track https://demotiles.maplibre.org https://api.maptiler.com;

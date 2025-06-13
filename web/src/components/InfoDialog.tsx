@@ -17,7 +17,7 @@ export default function InfoDialog() {
     return (
         <>
             <div className="absolute top-4 right-4 z-10">
-                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-1 border border-border/50">
+                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
                     <Button
                         variant="outline"
                         size="icon"
@@ -31,19 +31,21 @@ export default function InfoDialog() {
             </div>
 
             <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="w-[calc(100vw-2rem)] max-w-sm sm:max-w-md rounded-lg">
                     <DialogHeader>
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-start gap-3 mb-2">
                             <Image
                                 src="/nobetcim.webp"
                                 alt="Nöbetçi Eczaneler"
-                                width={40}
-                                height={40}
+                                width={32}
+                                height={32}
                                 className="rounded-lg"
                             />
                             <div className="flex flex-col">
-                                <DialogTitle>nobetcim.app</DialogTitle>
-                                <DialogDescription className="text-xs text-muted-foreground mt-0">
+                                <DialogTitle className="text-left">
+                                    nobetcim.app
+                                </DialogTitle>
+                                <DialogDescription className="text-xs text-muted-foreground mt-0 text-left">
                                     Ücretsiz Nöbetçi Eczane Servisi
                                 </DialogDescription>
                             </div>

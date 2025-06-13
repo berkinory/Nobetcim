@@ -77,19 +77,10 @@ export default async function RootLayout({
             suppressHydrationWarning
             className={cn(geist.variable, menlo.variable, 'h-full')}
         >
-            {process.env.NODE_ENV === 'development' && (
-                <head>
-                    <script
-                        async
-                        crossOrigin="anonymous"
-                        src="//unpkg.com/react-scan/dist/auto.global.js"
-                    />
-                </head>
-            )}
             <body className="font-sans h-full overflow-hidden">
                 <Toaster position="top-right" duration={4000} />
                 <OpenPanelComponent
-                    clientId="e8ecae40-02e5-4767-9c07-b4423b4f43d6"
+                    clientId="af02c540-1799-4bf5-8a4f-820094e7d26e"
                     cdnUrl="/op1.js"
                     trackScreenViews={true}
                     trackOutgoingLinks={true}
