@@ -27,7 +27,12 @@ export async function generateMetadata() {
         title,
         description,
         keywords: keywords.join(', '),
-        openGraph: { ...openGraph, title, description },
+        openGraph: {
+            ...openGraph,
+            title,
+            description,
+            images: openGraph.images,
+        },
         twitter: {
             ...twitterCard,
             title,
