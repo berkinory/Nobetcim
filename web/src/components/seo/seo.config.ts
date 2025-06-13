@@ -6,7 +6,7 @@ type SiteMetadata = {
 
 export const seoConfig = {
     site: {
-        name: 'Nöbetçi Eczaneler',
+        name: 'Nöbetçim',
         url: process.env.NEXT_PUBLIC_URL,
         publisher: 'berkinory',
         author: {
@@ -16,21 +16,17 @@ export const seoConfig = {
     },
 
     metadata: {
-        title: 'Nöbetçi Eczaneler',
-        description:
-            'Monitor your websites & API endpoints with Nöbetçi Eczaneler. Real-time alerts, uptime tracking, performance monitoring, downtime notifications.',
+        title: 'Nöbetçim',
+        description: 'Size en yakın nöbetçi eczaneleri bulun.',
         keywords: [
-            'uptime',
-            'monitor',
-            'heartbeat',
-            'track',
-            'ping',
-            'alert',
-            'monitoring',
-            'website monitoring',
-            'api monitoring',
-            'downtime alerts',
-            'performance monitoring',
+            'eczane',
+            'eczaneler',
+            'nöbetçi eczaneler',
+            'nöbetçi eczane',
+            'nöbetçi eczane bul',
+            'nöbetçi eczane arama',
+            'nöbetçi eczane harita',
+            'nöbetçi eczane yakını',
         ],
     } as SiteMetadata,
 
@@ -40,11 +36,11 @@ export const seoConfig = {
                 url: '/og.webp',
                 width: 1200,
                 height: 630,
-                alt: 'Nöbetçi Eczaneler',
+                alt: 'En Yakın Nöbetçi Eczaneler',
             },
         ],
         type: 'website',
-        siteName: 'Nöbetçi Eczaneler',
+        siteName: 'Nöbetçim',
     },
 
     twitter: {
