@@ -17,18 +17,17 @@ const ContentSecurityPolicy = `
 `;
 
 const nextConfig: NextConfig = {
+    turbopack: {
+        resolveExtensions: ['.ts', '.tsx'],
+    },
     devIndicators: false,
     reactStrictMode: true,
     compress: true,
-    experimental: {
-        optimizePackageImports: ['@polar-sh/sdk', 'better-auth'],
-    },
     compiler: {
         removeConsole: {
             exclude: ['error', 'warn'],
         },
     },
-    pageExtensions: ['ts', 'tsx'],
     poweredByHeader: false,
     headers: async () => {
         return [
