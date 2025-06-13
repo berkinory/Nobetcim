@@ -76,7 +76,7 @@ export default function InfoDialog() {
                             <ul className="space-y-1 text-sm text-muted-foreground">
                                 <li>• Konum erişimine izin verin.</li>
                                 <li>
-                                    • Yakınınızdaki nöbetçi eczaneleri
+                                    • Size en yakın 30 nöbetçi eczaneyi
                                     görüntüleyin.
                                 </li>
                                 <li>

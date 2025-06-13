@@ -19,15 +19,8 @@ import PharmacyMarker from '@/components/PharmacyMarker';
 import PharmacyDialog from '@/components/PharmacyDialog';
 
 const MAP_CONFIG = {
-    TURKEY_BOUNDS: {
-        north: 42.5,
-        south: 36.25,
-        east: 44.5,
-        west: 25,
-    },
-
     ZOOM: {
-        MIN: 12,
+        MIN: 8,
         MAX: 17,
         INITIAL: 12,
         TARGET: 14,
@@ -44,7 +37,8 @@ const MAP_CONFIG = {
     LOCATION: {
         UPDATE_THROTTLE_MS: 10000,
         CHANGE_THRESHOLD: 0.00025,
-        PHARMACY_RADIUS_KM: 20,
+        MAX_CLOSEST_PHARMACIES: 30,
+        BUFFER_KM: 50,
         DEFAULT_FALLBACK: { latitude: 39.9334, longitude: 32.8597 },
     },
 
@@ -80,6 +74,26 @@ function calculateDistance(
             Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+}
+
+function calculateBoundsFromLocation(
+    latitude: number,
+    longitude: number,
+    bufferKm: number
+): [[number, number], [number, number]] {
+    const latBuffer = bufferKm / 111.32;
+    const lonBuffer =
+        bufferKm / (111.32 * Math.cos((latitude * Math.PI) / 180));
+
+    const south = latitude - latBuffer;
+    const north = latitude + latBuffer;
+    const west = longitude - lonBuffer;
+    const east = longitude + lonBuffer;
+
+    return [
+        [west, south],
+        [east, north],
+    ];
 }
 
 function hasLocationChangedSignificantly(
@@ -181,20 +195,15 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
 
         const mapStyleUrl = useMemo(() => getMapStyleUrl(mapStyle), [mapStyle]);
 
-        const maxBounds = useMemo(
-            () =>
-                [
-                    [
-                        MAP_CONFIG.TURKEY_BOUNDS.west,
-                        MAP_CONFIG.TURKEY_BOUNDS.south,
-                    ],
-                    [
-                        MAP_CONFIG.TURKEY_BOUNDS.east,
-                        MAP_CONFIG.TURKEY_BOUNDS.north,
-                    ],
-                ] as [[number, number], [number, number]],
-            []
-        );
+        const maxBounds = useMemo(() => {
+            if (!userLocation) return undefined;
+
+            return calculateBoundsFromLocation(
+                userLocation.latitude,
+                userLocation.longitude,
+                MAP_CONFIG.LOCATION.BUFFER_KM
+            );
+        }, [userLocation]);
 
         const processLocationUpdate = useCallback(
             (newLocation: { latitude: number; longitude: number }) => {
@@ -350,28 +359,52 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
         const nearbyPharmacies = useMemo(() => {
             if (!pharmacies || !userLocation) return [];
 
-            return pharmacies
-                .map((pharmacy) => {
-                    const distance = calculateDistance(
-                        userLocation.latitude,
-                        userLocation.longitude,
-                        pharmacy.lat,
-                        pharmacy.long
-                    );
-                    return { pharmacy, distance };
-                })
-                .filter(
-                    ({ distance }) =>
-                        distance <= MAP_CONFIG.LOCATION.PHARMACY_RADIUS_KM
-                )
-                .map(({ pharmacy, distance }) => (
-                    <PharmacyMarker
-                        key={`${pharmacy.name}-${pharmacy.lat}-${pharmacy.long}`}
-                        pharmacy={pharmacy}
-                        distance={distance}
-                        onClick={handlePharmacyClick}
-                    />
-                ));
+            const closestPharmacies: Array<{
+                pharmacy: PharmacyData;
+                distance: number;
+            }> = [];
+
+            for (const pharmacy of pharmacies) {
+                const distance = calculateDistance(
+                    userLocation.latitude,
+                    userLocation.longitude,
+                    pharmacy.lat,
+                    pharmacy.long
+                );
+
+                if (
+                    closestPharmacies.length <
+                    MAP_CONFIG.LOCATION.MAX_CLOSEST_PHARMACIES
+                ) {
+                    closestPharmacies.push({ pharmacy, distance });
+                    if (
+                        closestPharmacies.length ===
+                        MAP_CONFIG.LOCATION.MAX_CLOSEST_PHARMACIES
+                    ) {
+                        closestPharmacies.sort(
+                            (a, b) => b.distance - a.distance
+                        );
+                    }
+                } else {
+                    if (distance < closestPharmacies[0].distance) {
+                        closestPharmacies[0] = { pharmacy, distance };
+                        closestPharmacies.sort(
+                            (a, b) => b.distance - a.distance
+                        );
+                    }
+                }
+            }
+
+            closestPharmacies.sort((a, b) => a.distance - b.distance);
+
+            return closestPharmacies.map(({ pharmacy, distance }) => (
+                <PharmacyMarker
+                    key={`${pharmacy.name}-${pharmacy.lat}-${pharmacy.long}`}
+                    pharmacy={pharmacy}
+                    distance={distance}
+                    onClick={handlePharmacyClick}
+                />
+            ));
         }, [pharmacies, userLocation, handlePharmacyClick]);
 
         const imperativeHandle = useMemo(
@@ -403,6 +436,17 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
 
         useImperativeHandle(ref, () => imperativeHandle, [imperativeHandle]);
 
+        if (!userLocation) {
+            return (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
+                        <p className="text-gray-600">Konum alınıyor...</p>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <>
                 <MapGL
@@ -418,12 +462,10 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                     attributionControl={false}
                     logoPosition="bottom-left"
                 >
-                    {userLocation && (
-                        <UserLocationMarker
-                            longitude={userLocation.longitude}
-                            latitude={userLocation.latitude}
-                        />
-                    )}
+                    <UserLocationMarker
+                        longitude={userLocation.longitude}
+                        latitude={userLocation.latitude}
+                    />
 
                     {nearbyPharmacies}
                 </MapGL>
