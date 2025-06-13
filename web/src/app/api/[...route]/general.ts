@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { compress } from 'hono/compress';
 import { Redis } from '@upstash/redis';
-import { createResponse, withRateLimit } from './utils';
+import { createResponse } from './utils';
 
 export const generalRoutes = new Hono();
 
@@ -22,39 +22,36 @@ const redis = new Redis({
     token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 });
 
-generalRoutes.get(
-    '/pharmacy',
-    withRateLimit(async () => {
-        try {
-            const dateKey = getCurrentActiveDate();
+generalRoutes.get('/pharmacy', async () => {
+    try {
+        const dateKey = getCurrentActiveDate();
 
-            const pharmacyData = await getPharmacyData(dateKey);
+        const pharmacyData = await getPharmacyData(dateKey);
 
-            if (!pharmacyData) {
-                return createResponse(
-                    false,
-                    `No pharmacy data found for ${dateKey}`
-                );
-            }
-
-            const response = createResponse(true, pharmacyData);
-
-            response.headers.set(
-                'Cache-Control',
-                'public, s-maxage=7200, stale-while-revalidate=7200'
-            );
-
-            return response;
-        } catch (error) {
-            console.error('Pharmacy API error:', error);
+        if (!pharmacyData) {
             return createResponse(
                 false,
-                'Internal server error',
-                'Failed to fetch pharmacy data'
+                `No pharmacy data found for ${dateKey}`
             );
         }
-    })
-);
+
+        const response = createResponse(true, pharmacyData);
+
+        response.headers.set(
+            'Cache-Control',
+            'public, s-maxage=7200, stale-while-revalidate=7200'
+        );
+
+        return response;
+    } catch (error) {
+        console.error('Pharmacy API error:', error);
+        return createResponse(
+            false,
+            'Internal server error',
+            'Failed to fetch pharmacy data'
+        );
+    }
+});
 
 function getCurrentActiveDate(): string {
     const now = new Date();
