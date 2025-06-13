@@ -1,0 +1,18 @@
+{
+    "$schema": "https://unpkg.com/knip@latest/schema.json",
+    "entry": ["app/**/*.{ts,tsx}", "pages/**/*.{ts,tsx}"],
+    "project": ["**/*.{ts,tsx}"],
+    "ignore": [
+        "**/*.d.ts",
+        "node_modules/**",
+        "src/i18n/request.ts",
+        "src/lib/metadata.ts"
+    ],
+    "rules": {
+        "classMembers": "off",
+        "enumMembers": "off",
+        "exports": "off",
+        "types": "off",
+        "binaries": "off"
+    }
+}
