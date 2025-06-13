@@ -44,7 +44,7 @@ const MAP_CONFIG = {
     LOCATION: {
         UPDATE_THROTTLE_MS: 10000,
         CHANGE_THRESHOLD: 0.00025,
-        PHARMACY_RADIUS_KM: 15,
+        PHARMACY_RADIUS_KM: 20,
         DEFAULT_FALLBACK: { latitude: 39.9334, longitude: 32.8597 },
     },
 
