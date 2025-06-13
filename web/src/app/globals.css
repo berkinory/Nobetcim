@@ -22,10 +22,6 @@
         overflow: hidden;
     }
 
-    #__next {
-        height: 100%;
-    }
-
     :root {
         --background: 223.8136 -172.5242% 100.0000%;
         --foreground: 223.8136 0.0000% 3.9388%;

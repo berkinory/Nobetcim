@@ -6,7 +6,7 @@ type SiteMetadata = {
 
 export const seoConfig = {
     site: {
-        name: 'Pingvolt',
+        name: 'Nöbetçi Eczaneler',
         url: process.env.NEXT_PUBLIC_URL,
         publisher: 'berkinory',
         author: {
@@ -16,9 +16,9 @@ export const seoConfig = {
     },
 
     metadata: {
-        title: 'Pingvolt | Modern Website Uptime & API Monitoring',
+        title: 'Nöbetçi Eczaneler',
         description:
-            'Monitor your websites & API endpoints with Pingvolt. Real-time alerts, uptime tracking, performance monitoring, downtime notifications.',
+            'Monitor your websites & API endpoints with Nöbetçi Eczaneler. Real-time alerts, uptime tracking, performance monitoring, downtime notifications.',
         keywords: [
             'uptime',
             'monitor',
@@ -40,11 +40,11 @@ export const seoConfig = {
                 url: '/og.webp',
                 width: 1200,
                 height: 630,
-                alt: 'Pingvolt',
+                alt: 'Nöbetçi Eczaneler',
             },
         ],
         type: 'website',
-        siteName: 'Pingvolt',
+        siteName: 'Nöbetçi Eczaneler',
     },
 
     twitter: {

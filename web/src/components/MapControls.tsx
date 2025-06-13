@@ -6,15 +6,12 @@ import {
     Minus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import InfoDialog from '@/components/InfoDialog';
 
 const MAP_STYLES = [
     { id: 'custom', name: 'Street', icon: MapIcon },
     { id: 'satellite', name: 'Satellite', icon: Satellite },
 ];
-
-const BUTTON_CLASS = 'h-8 w-8 md:h-10 md:w-10';
-const CONTROL_GROUP_CLASS =
-    'bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border';
 
 interface MapStyleSelectorProps {
     mapStyle: string;
@@ -24,7 +21,7 @@ interface MapStyleSelectorProps {
 function MapStyleSelector({ mapStyle, onStyleChange }: MapStyleSelectorProps) {
     return (
         <div className="absolute top-4 left-4 z-10">
-            <div className={CONTROL_GROUP_CLASS}>
+            <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
                 <div className="flex gap-1">
                     {MAP_STYLES.map((style) => {
                         const Icon = style.icon;
@@ -39,7 +36,7 @@ function MapStyleSelector({ mapStyle, onStyleChange }: MapStyleSelectorProps) {
                                 size="icon"
                                 onClick={() => onStyleChange(style.id)}
                                 title={`${style.name} Map`}
-                                className={BUTTON_CLASS}
+                                className="h-8 w-8 md:h-10 md:w-10"
                             >
                                 <Icon size={16} className="md:w-5 md:h-5" />
                             </Button>
@@ -66,14 +63,14 @@ function NavigationControls({
 }: NavigationControlsProps) {
     return (
         <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-            <div className={CONTROL_GROUP_CLASS}>
+            <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
                 <div className="flex flex-col gap-1">
                     <Button
                         variant="outline"
                         size="icon"
                         onClick={onZoomIn}
                         title="Zoom In"
-                        className={BUTTON_CLASS}
+                        className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Plus size={16} className="md:w-5 md:h-5" />
                     </Button>
@@ -82,7 +79,7 @@ function NavigationControls({
                         size="icon"
                         onClick={onZoomOut}
                         title="Zoom Out"
-                        className={BUTTON_CLASS}
+                        className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Minus size={16} className="md:w-5 md:h-5" />
                     </Button>
@@ -91,13 +88,13 @@ function NavigationControls({
 
             {/* Location Button */}
             {hasUserLocation && (
-                <div className={CONTROL_GROUP_CLASS}>
+                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
                     <Button
                         variant="outline"
                         size="icon"
                         onClick={onLocationFocus}
                         title="Center on my location"
-                        className={BUTTON_CLASS}
+                        className="h-8 w-8 md:h-10 md:w-10"
                     >
                         <Navigation size={16} className="md:w-5 md:h-5" />
                     </Button>
@@ -136,6 +133,7 @@ export default function MapControls({
                 onZoomOut={onZoomOut}
                 onLocationFocus={onLocationFocus}
             />
+            <InfoDialog />
         </>
     );
 }
