@@ -13,6 +13,7 @@ import {
     type ViewStateChangeEvent,
 } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { toast } from 'sonner';
 
 import UserLocationMarker from '@/components/UserLocationMarker';
 import PharmacyMarker from '@/components/PharmacyMarker';
@@ -415,6 +416,15 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
             }
 
             closestPharmacies.sort((a, b) => a.distance - b.distance);
+
+            if (
+                closestPharmacies.length > 0 &&
+                closestPharmacies[0].distance > 15
+            ) {
+                toast.error(
+                    'Şuan bulunduğunuz şehirde hizmet veremiyor olabiliriz. Lütfen başka kaynakları da kontrol edin.'
+                );
+            }
 
             return closestPharmacies.map(({ pharmacy, distance }) => (
                 <PharmacyMarker
