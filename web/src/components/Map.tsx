@@ -111,6 +111,25 @@ function hasLocationChangedSignificantly(
     );
 }
 
+export function isLocationInTurkey(
+    latitude: number,
+    longitude: number
+): boolean {
+    const turkeyBounds = {
+        north: 42.1,
+        south: 35.8,
+        east: 44.8,
+        west: 25.7,
+    };
+
+    return (
+        latitude >= turkeyBounds.south &&
+        latitude <= turkeyBounds.north &&
+        longitude >= turkeyBounds.west &&
+        longitude <= turkeyBounds.east
+    );
+}
+
 export function getCurrentLocation(): Promise<{
     latitude: number;
     longitude: number;

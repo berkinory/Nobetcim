@@ -8,6 +8,7 @@ import LocationPermissionDialog from '@/components/LocationPermissionDialog';
 import MapComponent, {
     type MapHandle,
     getCurrentLocation,
+    isLocationInTurkey,
 } from '@/components/Map';
 import MapControls from '@/components/MapControls';
 import { usePharmacyQuery } from '@/lib/query/api-queries';
@@ -43,6 +44,13 @@ export default function Home() {
 
         try {
             const location = await getCurrentLocation();
+
+            if (!isLocationInTurkey(location.latitude, location.longitude)) {
+                toast.error('Bu uygulama sadece Türkiye içinde kullanılabilir');
+                setShowLocationDialog(true);
+                return;
+            }
+
             handleLocationFound(location);
         } catch (error) {
             console.error('Failed to get location:', error);
