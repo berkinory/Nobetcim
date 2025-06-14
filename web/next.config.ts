@@ -13,7 +13,7 @@ const ContentSecurityPolicy = `
   connect-src 'self' https://api.openpanel.dev/track https://demotiles.maplibre.org https://api.maptiler.com;
   media-src 'self';
   worker-src 'self' blob:;
-  img-src 'self' https://lh3.googleusercontent.com https://avatars.githubusercontent.com data: https://demotiles.maplibre.org https://api.maptiler.com;
+  img-src 'self' data: https://demotiles.maplibre.org https://api.maptiler.com;
 `;
 
 const nextConfig: NextConfig = {
