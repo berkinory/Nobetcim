@@ -426,9 +426,9 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                 );
             }
 
-            return closestPharmacies.map(({ pharmacy, distance }) => (
+            return closestPharmacies.map(({ pharmacy, distance }, index) => (
                 <PharmacyMarker
-                    key={`${pharmacy.name}-${pharmacy.lat}-${pharmacy.long}`}
+                    key={`${pharmacy.name}-${pharmacy.city}-${pharmacy.district}-${pharmacy.address}-${pharmacy.lat}-${pharmacy.long}-${index}`}
                     pharmacy={pharmacy}
                     distance={distance}
                     onClick={handlePharmacyClick}

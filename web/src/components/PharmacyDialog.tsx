@@ -60,7 +60,7 @@ export default function PharmacyDialog({
         <div className="fixed inset-0 z-50 pointer-events-none">
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-auto">
                 <div
-                    key={`${pharmacy.name}-${pharmacy.lat}-${pharmacy.long}`}
+                    key={`${pharmacy.name}-${pharmacy.city}-${pharmacy.district}-${pharmacy.address}-${pharmacy.lat}-${pharmacy.long}`}
                     className="bg-card border border-border rounded-lg shadow-xl p-4 min-w-80 max-w-sm mx-4 animate-in slide-in-from-bottom-8 fade-in-0 duration-300 transition-all"
                 >
                     <div className="flex items-start justify-between mb-3">
