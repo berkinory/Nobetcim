@@ -38,7 +38,7 @@ const MAP_CONFIG = {
     LOCATION: {
         UPDATE_THROTTLE_MS: 10000,
         CHANGE_THRESHOLD: 0.00025,
-        MAX_CLOSEST_PHARMACIES: 30,
+        MAX_CLOSEST_PHARMACIES: 40,
         BUFFER_KM: 50,
         DEFAULT_FALLBACK: { latitude: 39.9334, longitude: 32.8597 },
     },

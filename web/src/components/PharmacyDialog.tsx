@@ -66,15 +66,7 @@ export default function PharmacyDialog({
                     <div className="flex items-start justify-between mb-3">
                         <div className="flex-1 pr-2">
                             <h3 className="font-semibold text-card-foreground text-lg leading-tight">
-                                Eczane{' '}
-                                {pharmacy.name
-                                    .split(' ')
-                                    .map(
-                                        (word) =>
-                                            word.charAt(0).toUpperCase() +
-                                            word.slice(1).toLowerCase()
-                                    )
-                                    .join(' ')}
+                                ECZANE {pharmacy.name}
                             </h3>
                             <p className="text-sm text-muted-foreground mt-1">
                                 {pharmacy.district}, {pharmacy.city}
