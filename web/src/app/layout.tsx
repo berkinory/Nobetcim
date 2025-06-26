@@ -85,8 +85,9 @@ export default async function RootLayout({
             <body className="font-sans h-full overflow-hidden">
                 <Toaster position="top-right" duration={4000} />
                 <OpenPanelComponent
-                    clientId="af02c540-1799-4bf5-8a4f-820094e7d26e"
+                    clientId="c4468246-5ec2-4fc3-88d4-54e2d72c0875"
                     cdnUrl="/op1.js"
+                    apiUrl="https://op.mirac.dev/api"
                     trackScreenViews={true}
                     trackOutgoingLinks={true}
                     trackAttributes={true}
