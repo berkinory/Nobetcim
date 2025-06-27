@@ -14,12 +14,14 @@ import {
 interface LocationPermissionDialogProps {
     open: boolean;
     onLocationRequest: () => void;
+    isRetry?: boolean;
 }
 
 export default function LocationPermissionDialog({
     open,
     onLocationRequest,
     onOpenChange,
+    isRetry = false,
 }: LocationPermissionDialogProps & { onOpenChange: (v: boolean) => void }) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -33,11 +35,12 @@ export default function LocationPermissionDialog({
                         <MapPin className="w-5 h-5 text-primary" />
                     </div>
                     <DialogTitle className="text-center text-base font-semibold">
-                        Konum İzinleri
+                        {isRetry ? 'Konum Alınamadı' : 'Konum İzinleri'}
                     </DialogTitle>
                     <DialogDescription className="text-center text-sm text-muted-foreground">
-                        En yakın eczaneleri gösterebilmek için konumunuza erişim
-                        izni gerekiyor.
+                        {isRetry
+                            ? 'Konumunuz alınamadı. Lütfen konum servislerinizin açık olduğundan emin olun ve tekrar deneyin.'
+                            : 'En yakın eczaneleri gösterebilmek için konumunuza erişim izni gerekiyor.'}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter className="flex flex-col gap-2 sm:flex-col">
@@ -48,7 +51,7 @@ export default function LocationPermissionDialog({
                         size="sm"
                     >
                         <Navigation className="w-4 h-4 mr-2" />
-                        Konum İzni Ver
+                        {isRetry ? 'Tekrar Dene' : 'Konum İzni Ver'}
                     </Button>
                 </DialogFooter>
             </DialogContent>
