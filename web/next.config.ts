@@ -10,7 +10,7 @@ const ContentSecurityPolicy = `
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.databuddy.cc/databuddy.js;
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com;
+  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://basket.databuddy.cc;
   media-src 'self';
   worker-src 'self' blob:;
   img-src 'self' data: https://demotiles.maplibre.org https://api.maptiler.com;
