@@ -23,6 +23,9 @@ export default function Home() {
     } | null>(null);
     const [hasGpsConfirmed, setHasGpsConfirmed] = useState(false);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+    const [isRetry, setIsRetry] = useState(false);
+    
+    const locationRequestInProgress = useRef(false);
 
     const mapRef = useRef<MapHandle>(null);
 
@@ -39,6 +42,11 @@ export default function Home() {
     );
 
     const handleLocationRequest = useCallback(async () => {
+        if (locationRequestInProgress.current || isLoadingLocation) {
+            return;
+        }
+
+        locationRequestInProgress.current = true;
         setShowLocationDialog(false);
         setIsLoadingLocation(true);
 
@@ -48,18 +56,40 @@ export default function Home() {
             if (!isLocationInTurkey(location.latitude, location.longitude)) {
                 toast.error('Bu uygulama sadece Türkiye içinde kullanılabilir');
                 setShowLocationDialog(true);
+                setIsRetry(true);
                 return;
             }
 
             handleLocationFound(location);
+            setIsRetry(false);
         } catch (error) {
             console.error('Failed to get location:', error);
+            let errorMessage = 'Konum alınamadı. Lütfen tekrar deneyin';
+            
+            if (error instanceof GeolocationPositionError) {
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Konum izni reddedildi. Lütfen tarayıcı ayarlarından konum iznini etkinleştirin';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Konum servislerine erişilemiyor. Lütfen konum servislerinizin açık olduğundan emin olun';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Konum alınamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin';
+                        break;
+                    default:
+                        errorMessage = 'Konum alınamadı. Lütfen konum servislerinizin açık olduğundan emin olun ve tekrar deneyin';
+                }
+            }
+            
+            toast.error(errorMessage);
             setShowLocationDialog(true);
-            toast.error('Konum alınamadı. Lütfen tekrar deneyin');
+            setIsRetry(true);
         } finally {
             setIsLoadingLocation(false);
+            locationRequestInProgress.current = false;
         }
-    }, [handleLocationFound]);
+    }, [handleLocationFound, isLoadingLocation]);
 
     const handleStyleChange = useCallback((newStyle: string) => {
         setMapStyle(newStyle);
@@ -99,6 +129,7 @@ export default function Home() {
                 open={showLocationDialog}
                 onLocationRequest={handleLocationRequest}
                 onOpenChange={setShowLocationDialog}
+                isRetry={isRetry}
             />
             <main className="h-full flex flex-col">
                 <div className="w-full h-full relative">

@@ -141,19 +141,46 @@ export function getCurrentLocation(): Promise<{
             return;
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                resolve({
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude,
-                });
-            },
-            (error) => {
-                console.error('Location error:', error);
-                resolve(MAP_CONFIG.LOCATION.DEFAULT_FALLBACK);
-            },
-            MAP_CONFIG.GEOLOCATION_OPTIONS
-        );
+        const abortController = new AbortController();
+        const signal = abortController.signal;
+
+        const timeoutId = setTimeout(() => {
+            abortController.abort();
+            reject(new Error('Location request timed out'));
+        }, MAP_CONFIG.GEOLOCATION_OPTIONS.timeout || 10000);
+
+        const successCallback = (position: GeolocationPosition) => {
+            clearTimeout(timeoutId);
+            resolve({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+            });
+        };
+
+        const errorCallback = (error: GeolocationPositionError) => {
+            clearTimeout(timeoutId);
+            console.error('Location error:', error);
+            reject(error);
+        };
+
+        try {
+            navigator.geolocation.getCurrentPosition(
+                successCallback,
+                errorCallback,
+                {
+                    ...MAP_CONFIG.GEOLOCATION_OPTIONS,
+                    timeout: MAP_CONFIG.GEOLOCATION_OPTIONS.timeout || 10000,
+                }
+            );
+        } catch (error) {
+            clearTimeout(timeoutId);
+            reject(error);
+        }
+
+        return () => {
+            clearTimeout(timeoutId);
+            abortController.abort();
+        };
     });
 }
 
