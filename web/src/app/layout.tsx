@@ -1,6 +1,5 @@
 import './globals.css';
 import { ThemeProvider } from '@/lib/theme';
-import { OpenPanelComponent } from '@openpanel/nextjs';
 import { Toaster } from '@/components/ui/sonner';
 import type React from 'react';
 import { cn } from '@/lib/utils';
@@ -15,6 +14,7 @@ import {
 } from '@/components/seo/seo.config';
 import SEOProvider from '@/components/seo/SEOProvider';
 import { QueryProvider } from '@/lib/query/query-provider';
+import { Databuddy } from '@databuddy/sdk';
 
 export async function generateMetadata() {
     const { title, description, keywords } = getMetadata();
@@ -84,17 +84,14 @@ export default async function RootLayout({
         >
             <body className="font-sans h-full overflow-hidden">
                 <Toaster position="top-right" duration={4000} />
-                <OpenPanelComponent
-                    clientId="c4468246-5ec2-4fc3-88d4-54e2d72c0875"
-                    cdnUrl="/op1.js"
-                    apiUrl="https://op.mirac.dev/api"
-                    trackScreenViews={true}
-                    trackOutgoingLinks={true}
-                    trackAttributes={true}
-                />
                 <SEOProvider>
                     <QueryProvider>
                         <ThemeProvider>
+                            <Databuddy
+                                clientId="zIxiSsxB-qEREnrg5Vjr8"
+                                trackWebVitals={true}
+                                enableBatching={true}
+                            />
                             <div className="h-full overflow-hidden">
                                 {children}
                             </div>
