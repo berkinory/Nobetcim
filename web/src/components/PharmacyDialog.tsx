@@ -52,7 +52,7 @@ export default function PharmacyDialog({
     };
 
     const handleNavigate = () => {
-        const url = `https://maps.google.com/?q=${pharmacy.lat},${pharmacy.long}`;
+        const url = `https://google.com/maps/dir/?api=1&destination=${pharmacy.lat},${pharmacy.long}`;
         window.open(url, '_blank');
     };
 
@@ -143,7 +143,7 @@ export default function PharmacyDialog({
                             <Button
                                 type="button"
                                 onClick={() => {
-                                    const url = `maps://maps.apple.com/?q=${pharmacy.lat},${pharmacy.long}`;
+                                    const url = `https://maps.apple.com/?daddr=${pharmacy.lat},${pharmacy.long}`;
                                     window.open(url, '_blank');
                                 }}
                                 variant="outline"
