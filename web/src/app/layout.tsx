@@ -56,6 +56,21 @@ export async function generateMetadata() {
         icons: {
             icon: '/favicon.ico',
         },
+        manifest: '/manifest.webmanifest',
+        appleWebApp: {
+            capable: true,
+            statusBarStyle: 'default',
+            title: 'Nobetcim',
+        },
+        other: {
+            'mobile-web-app-capable': 'yes',
+            'apple-mobile-web-app-capable': 'yes',
+            'apple-mobile-web-app-status-bar-style': 'default',
+            'apple-mobile-web-app-title': 'Nobetcim',
+            'application-name': 'Nobetcim',
+            'msapplication-TileColor': '#000000',
+            'theme-color': '#000000',
+        },
     };
 }
 
