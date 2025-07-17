@@ -53,10 +53,13 @@ export const seoConfig = {
                 width: 1200,
                 height: 630,
                 alt: 'Nobetcim | En Yakın Nöbetçi Eczane Bilgileri',
+                type: 'image/webp',
             },
         ],
         type: 'website',
         siteName: 'Nobetcim - Nöbetçi Eczane Bulma Platformu',
+        locale: 'tr_TR',
+        url: '/',
     },
 
     twitter: {
