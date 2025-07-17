@@ -1,7 +1,7 @@
 'use client';
 
 import { Marker } from 'react-map-gl/maplibre';
-import { Cross } from 'lucide-react';
+import { Moon } from 'lucide-react';
 
 interface PharmacyData {
     city: string;
@@ -36,7 +36,7 @@ export default function PharmacyMarker({
                 onClick={() => onClick?.(pharmacy, distance)}
                 aria-label={`Eczane: ${pharmacy.name}`}
             >
-                <Cross size={16} className="text-white" strokeWidth={3} />
+                <Moon size={16} className="text-white" strokeWidth={3} />
             </button>
         </Marker>
     );
