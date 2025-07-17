@@ -6,7 +6,7 @@ type SiteMetadata = {
 
 export const seoConfig = {
     site: {
-        name: 'Nöbetçim',
+        name: 'Nobetcim',
         url: process.env.NEXT_PUBLIC_URL,
         publisher: 'berkinory',
         author: {
@@ -16,17 +16,33 @@ export const seoConfig = {
     },
 
     metadata: {
-        title: 'Nöbetçim',
-        description: 'Size en yakın nöbetçi eczaneleri bulun.',
+        title: 'Nobetcim | En Yakın Nöbetçi Eczane Bilgileri',
+        description:
+            "Türkiye'nin en kapsamlı nöbetçi eczane bulma platformu. Size en yakın nöbetçi eczaneleri harita üzerinde görün, adres ve telefon bilgilerine ulaşın. 7/24 nöbetçi eczane sorgulama.",
         keywords: [
-            'eczane',
-            'eczaneler',
-            'nöbetçi eczaneler',
             'nöbetçi eczane',
             'nöbetçi eczane bul',
-            'nöbetçi eczane arama',
+            'en yakın nöbetçi eczane',
             'nöbetçi eczane harita',
-            'nöbetçi eczane yakını',
+            'nöbetçi eczane arama',
+            'nöbetçi eczane sorgulama',
+            'nöbetçi eczane yakınımda',
+            'nöbetçi eczane adres',
+            'nöbetçi eczane telefon',
+            'eczane nöbetçi',
+            'gece nöbetçi eczane',
+            'hafta sonu nöbetçi eczane',
+            'nöbetçi eczane istanbul',
+            'nöbetçi eczane ankara',
+            'acil eczane',
+            '24 saat eczane',
+            'gece eczane',
+            'tatil eczane',
+            'pazar eczane',
+            'türkiye nöbetçi eczane',
+            'online nöbetçi eczane',
+            'nöbetçi eczane listesi',
+            'nöbetçi eczane rehberi',
         ],
     } as SiteMetadata,
 
@@ -36,11 +52,11 @@ export const seoConfig = {
                 url: '/og.webp',
                 width: 1200,
                 height: 630,
-                alt: 'En Yakın Nöbetçi Eczaneler',
+                alt: 'Nobetcim | En Yakın Nöbetçi Eczane Bilgileri',
             },
         ],
         type: 'website',
-        siteName: 'Nöbetçim',
+        siteName: 'Nobetcim - Nöbetçi Eczane Bulma Platformu',
     },
 
     twitter: {
