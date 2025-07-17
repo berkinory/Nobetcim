@@ -171,7 +171,7 @@ def run_scheduler():
                 f"\n🕐 Starting collection at: {current_time.strftime('%d/%m/%Y %H:%M:%S')} (UTC+3)"
             )
 
-            process_multiple_dates(3)
+            process_multiple_dates(2)
 
 
             time.sleep(43200)
