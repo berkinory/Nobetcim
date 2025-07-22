@@ -107,82 +107,138 @@ def fetch_pharmacy_rows() -> list:
     return rows
 
 
-def get_coordinates(index: int):
+def get_coordinates(index: int, max_retries=3):
     url_coord = f"{BASE_URL}?harita=Goster&index={index}"
     payload = {"harita": "Goster", "index": str(index)}
 
-    response = make_request(url_coord, method="POST", data=payload, stream=False)
-    content = response.text
-    response.close()
-    
-    time.sleep(1)
-
-    lat_match = re.search(r"var latti = parseFloat\(([\d\.]+)\);", content)
-    lon_match = re.search(r"var longi = parseFloat\(([\d\.]+)\);", content)
-
-    del response, content
-    gc.collect()
-
-    if lat_match and lon_match:
-        return float(lat_match.group(1)), float(lon_match.group(1))
-    else:
-        return None, None
-
-
-def scrape_pharmacies(plaka_kodu: str, tarih: str) -> dict:
-    start_time = time.time()
-    pharmacies = []
-
-    try:
-        token = fetch_token()
-        time.sleep(1)
-        submit_query(plaka_kodu, tarih, token)
-        time.sleep(1)
-        rows = fetch_pharmacy_rows()
-
-        for idx, row in enumerate(rows):
-            cols = [td.get_text(strip=True) for td in row.find_all("td")]
-            if len(cols) >= 4:
-                name = cols[0]
-                district = cols[1].split(" ")[0]
-                phone = clean_phone_number(cols[2])
-                address = cols[3]
-
-                lat, lon = get_coordinates(idx)
-                
-                pharmacy_data = {
-                    "Ad": name,
-                    "İlçe": district,
-                    "Adres": address,
-                    "Telefon": phone,
-                    "Lat": lat,
-                    "Long": lon,
-                }
-                pharmacies.append(pharmacy_data)
-                
-                del cols, pharmacy_data
+    for attempt in range(max_retries):
+        try:
+            response = make_request(url_coord, method="POST", data=payload, stream=False)
+            content = response.text
+            response.close()
             
-            del row
+            time.sleep(1)
 
-        del rows, token
-        gc.collect()
+            lat_match = re.search(r"var latti = parseFloat\(([\d\.]+)\);", content)
+            lon_match = re.search(r"var longi = parseFloat\(([\d\.]+)\);", content)
 
-        return {
-            "success": True,
-            "tooktime": round(time.time() - start_time, 2),
-            "count": len(pharmacies),
-            "list": pharmacies,
-        }
+            del response, content
+            gc.collect()
 
-    except Exception:
-        del pharmacies
-        gc.collect()
-        return {
-            "success": False,
-            "tooktime": round(time.time() - start_time, 2),
-            "count": 0,
-            "list": [],
-        }
+            if lat_match and lon_match:
+                return float(lat_match.group(1)), float(lon_match.group(1))
+            else:
+                if attempt < max_retries - 1:
+                    backoff_delay = (attempt + 1) * 2 
+                    time.sleep(backoff_delay)
+                    continue
+                else:
+                    return None, None
+                    
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep((attempt + 1) * 2)
+                continue
+            else:
+                return None, None
+    
+    return None, None
+
+
+def is_suspicious_empty_result(plaka_kodu):
+    return True
+
+
+def scrape_pharmacies(plaka_kodu: str, tarih: str, max_retries=3) -> dict:
+    start_time = time.time()
+    
+    for attempt in range(max_retries):
+        pharmacies = []
+        
+        try:
+            token = fetch_token()
+            time.sleep(1)
+            submit_query(plaka_kodu, tarih, token)
+            time.sleep(1)
+            rows = fetch_pharmacy_rows()
+
+            for idx, row in enumerate(rows):
+                cols = [td.get_text(strip=True) for td in row.find_all("td")]
+                if len(cols) >= 4:
+                    name = cols[0]
+                    district = cols[1].split(" ")[0]
+                    phone = clean_phone_number(cols[2])
+                    address = cols[3]
+
+                    lat, lon = get_coordinates(idx)
+                    
+                    pharmacy_data = {
+                        "Ad": name,
+                        "İlçe": district,
+                        "Adres": address,
+                        "Telefon": phone,
+                        "Lat": lat,
+                        "Long": lon,
+                    }
+                    pharmacies.append(pharmacy_data)
+                    
+                    del cols, pharmacy_data
+                
+                del row
+
+            del rows, token
+            gc.collect()
+
+            if len(pharmacies) == 0:
+                if attempt < max_retries - 1:
+                    backoff_delay = 5 * (attempt + 1) 
+                    time.sleep(backoff_delay)
+                    continue
+                else:
+                    return {
+                        "success": True,
+                        "tooktime": round(time.time() - start_time, 2),
+                        "count": 0,
+                        "list": [],
+                    }
+            else:
+                missing_coords = sum(1 for p in pharmacies if not p.get("Lat") or not p.get("Long"))
+                coord_percentage = (len(pharmacies) - missing_coords) / len(pharmacies) * 100
+                
+                if coord_percentage < 50 and attempt < max_retries - 1:
+                    backoff_delay = 5 * (attempt + 1)
+                    time.sleep(backoff_delay)
+                    continue
+                else:
+                    return {
+                        "success": True,
+                        "tooktime": round(time.time() - start_time, 2),
+                        "count": len(pharmacies),
+                        "list": pharmacies,
+                    }
+
+        except Exception as e:
+            if attempt < max_retries - 1:
+                backoff_delay = 5 * (attempt + 1)  # 5s, 10s, 15s
+                time.sleep(backoff_delay)
+                continue
+            else:
+                del pharmacies
+                gc.collect()
+                return {
+                    "success": False,
+                    "tooktime": round(time.time() - start_time, 2),
+                    "count": 0,
+                    "list": [],
+                }
+    
+    # Should not reach here, but just in case
+    return {
+        "success": False,
+        "tooktime": round(time.time() - start_time, 2),
+        "count": 0,
+        "list": [],
+    }
 
 
 def parser(plaka_kodu: str, tarih: str) -> dict:

@@ -113,16 +113,25 @@ def process_single_date(redis_client, date_str):
             result = parser(plaka_str, date_str)
 
             if result["success"] and result["list"]:
+                # Check coordinate quality for reporting
+                missing_coords = sum(1 for p in result["list"] if not p.get("Lat") or not p.get("Long"))
+                coord_info = ""
+                if missing_coords > 0:
+                    coord_percentage = ((result["count"] - missing_coords) / result["count"]) * 100
+                    coord_info = f", {coord_percentage:.0f}% coords"
+                
                 redis_saved = save_to_redis(
                     redis_client, date_str, plaka_str, result["list"]
                 )
                 redis_status = "✓" if redis_saved else "✗"
-                print(
-                    f"✓ {result['count']} pharmacies ({result['tooktime']}s) Redis:{redis_status}"
-                )
+                print(f"✓ {result['count']} pharmacies ({result['tooktime']}s{coord_info}) Redis:{redis_status}")
+                successful += 1
+            elif result["success"] and result["count"] == 0:
+                # Empty result (already retried if suspicious)
+                print(f"✓ 0 pharmacies ({result['tooktime']}s)")
                 successful += 1
             else:
-                print("✗ Failed")
+                print(f"✗ Failed ({result['tooktime']}s)")
                 failed += 1
 
         except Exception as e:
@@ -131,6 +140,8 @@ def process_single_date(redis_client, date_str):
 
         time.sleep(2)
         gc.collect()
+
+    print(f"\n📊 FINAL RESULTS: ✓ {successful} successful, ✗ {failed} failed")
 
 
 def process_multiple_dates(days=2):
