@@ -39,7 +39,7 @@ generalRoutes.get('/pharmacy', async () => {
 
         response.headers.set(
             'Cache-Control',
-            'public, s-maxage=7200, stale-while-revalidate=7200'
+            'public, s-maxage=3600, stale-while-revalidate=3600'
         );
 
         return response;
