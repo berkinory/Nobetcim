@@ -43,7 +43,6 @@ function MapStyleSelector({ mapStyle, onStyleChange }: MapStyleSelectorProps) {
                             </Button>
                         );
                     })}
-                    <InfoDialog />
                 </div>
             </div>
         </div>
@@ -137,6 +136,7 @@ export default function MapControls({
                 onZoomOut={onZoomOut}
                 onLocationFocus={onLocationFocus}
             />
+            <InfoDialog />
         </>
     );
 }
