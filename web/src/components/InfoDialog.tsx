@@ -16,20 +16,16 @@ export default function InfoDialog() {
 
     return (
         <>
-            <div className="absolute top-4 right-4 z-10">
-                <div className="bg-background/95 backdrop-blur-sm rounded-lg shadow-xl p-2 border border-border">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setIsInfoOpen(true)}
-                        title="Information"
-                        aria-label="Uygulama bilgileri dialogunu aç"
-                        className="h-8 w-8 md:h-10 md:w-10"
-                    >
-                        <Info size={16} className="md:w-5 md:h-5" />
-                    </Button>
-                </div>
-            </div>
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsInfoOpen(true)}
+                title="Information"
+                aria-label="Uygulama bilgileri dialogunu aç"
+                className="h-8 w-8 md:h-10 md:w-10"
+            >
+                <Info size={16} className="md:w-5 md:h-5" />
+            </Button>
 
             <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
                 <DialogContent className="w-[calc(100vw-2rem)] max-w-sm sm:max-w-md rounded-lg">
