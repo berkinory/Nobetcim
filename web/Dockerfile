@@ -36,8 +36,8 @@ RUN adduser --system --uid 1001 nextjs
 
 RUN mkdir -p .next/static public
 COPY --from=builder --chown=nextjs:bun /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:bun /app/.next/static ./.next/static || true
-COPY --from=builder --chown=nextjs:bun /app/public ./public || true
+COPY --from=builder --chown=nextjs:bun /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:bun /app/public ./public
 
 USER nextjs
 
