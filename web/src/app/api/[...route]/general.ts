@@ -1,11 +1,8 @@
 import { Hono } from 'hono';
-import { compress } from 'hono/compress';
 import { Redis } from '@upstash/redis';
 import { createResponse } from './utils';
 
 export const generalRoutes = new Hono();
-
-generalRoutes.use(compress());
 
 interface PharmacyData {
     city: string;
