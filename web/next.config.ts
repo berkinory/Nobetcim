@@ -17,6 +17,7 @@ const ContentSecurityPolicy = `
 `;
 
 const nextConfig: NextConfig = {
+    output: 'standalone',
     devIndicators: false,
     reactStrictMode: true,
     compress: true,
