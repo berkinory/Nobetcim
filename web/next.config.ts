@@ -7,10 +7,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.databuddy.cc/databuddy.js;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://basket.databuddy.cc;
+  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://openpanel.mirac.dev;
   media-src 'self';
   worker-src 'self' blob:;
   img-src 'self' data: https://demotiles.maplibre.org https://api.maptiler.com;
