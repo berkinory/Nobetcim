@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/openpanel';
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 

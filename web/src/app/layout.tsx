@@ -14,7 +14,6 @@ import {
 } from '@/components/seo/seo.config';
 import SEOProvider from '@/components/seo/SEOProvider';
 import { QueryProvider } from '@/lib/query/query-provider';
-import { Databuddy } from '@databuddy/sdk';
 
 export async function generateMetadata() {
     const { title, description, keywords } = getMetadata();
@@ -102,11 +101,6 @@ export default async function RootLayout({
                 <SEOProvider>
                     <QueryProvider>
                         <ThemeProvider>
-                            <Databuddy
-                                clientId="zIxiSsxB-qEREnrg5Vjr8"
-                                trackWebVitals={true}
-                                enableBatching={true}
-                            />
                             <div className="h-full overflow-hidden">
                                 {children}
                             </div>
