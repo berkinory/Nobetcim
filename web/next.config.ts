@@ -7,10 +7,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline';
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://rybbit-api.mirac.dev;
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://openpanel.mirac.dev;
+  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://rybbit-api.mirac.dev;
   media-src 'self';
   worker-src 'self' blob:;
   img-src 'self' data: https://demotiles.maplibre.org https://api.maptiler.com;
