@@ -90,7 +90,7 @@ export function getGoogleVerification() {
 }
 
 export function getStaticOpenGraph() {
-    const baseUrl = seoConfig.site.url || 'http://localhost:3000';
+    const baseUrl = seoConfig.site.url || 'http://localhost:1001';
     return {
         ...seoConfig.openGraph,
         images: seoConfig.openGraph.images.map((img) => ({

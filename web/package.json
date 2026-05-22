@@ -3,9 +3,9 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "NODE_ENV=development next dev --turbo -H 0.0.0.0 -p 3000",
+        "dev": "NODE_ENV=development next dev --turbo -H 0.0.0.0 -p 1001",
         "build": "next build",
-        "start": "next start -H 0.0.0.0 -p 3000",
+        "start": "next start -H 0.0.0.0 -p 1001",
         "analyze": "ANALYZE=true next build",
         "lint": "biome lint",
         "format": "biome format --write",

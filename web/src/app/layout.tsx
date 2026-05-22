@@ -22,7 +22,7 @@ export async function generateMetadata() {
     const twitterCard = getTwitterCard();
 
     return {
-        metadataBase: new URL(seoConfig.site.url || 'http://localhost:3000'),
+        metadataBase: new URL(seoConfig.site.url || 'http://localhost:1001'),
         title,
         description,
         keywords: keywords.join(', '),

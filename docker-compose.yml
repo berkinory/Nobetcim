@@ -9,8 +9,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/migrations/0000_initial.sql:/docker-entrypoint-initdb.d/0000_initial.sql:ro
-    networks:
-      - internal
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U nobetcim -d nobetcim']
       interval: 5s
@@ -31,8 +29,11 @@ services:
       NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: '1'
+      PORT: '1001'
+    ports:
+      - '1001:1001'
     expose:
-      - '3000'
+      - '1001'
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,15 +41,12 @@ services:
       test:
         [
           'CMD-SHELL',
-          'bun -e "fetch(''http://127.0.0.1:3000'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+          'bun -e "fetch(''http://127.0.0.1:1001'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
         ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 30s
-    networks:
-      - internal
-      - dokploy-network
 
   pharmacy-scraper:
     build:
@@ -59,14 +57,6 @@ services:
         condition: service_healthy
       web:
         condition: service_healthy
-    networks:
-      - internal
-
-networks:
-  internal:
-    driver: bridge
-  dokploy-network:
-    external: true
 
 volumes:
   postgres_data:

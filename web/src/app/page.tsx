@@ -112,7 +112,7 @@ export default function Home() {
             '@context': 'https://schema.org',
             '@type': 'WebSite',
             name: seoConfig.site.name,
-            url: seoConfig.site.url || 'http://localhost:3000',
+            url: seoConfig.site.url || 'http://localhost:1001',
             inLanguage: 'tr',
         }),
         []
