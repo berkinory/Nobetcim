@@ -1,134 +1,76 @@
-import json
 import time
-import gc
-from datetime import datetime, timedelta, timezone
-from parser import parser
+
+from common import (
+    format_date,
+    get_redis_client,
+    get_scrape_dates,
+    get_turkish_time,
+    load_scrape_state,
+    merge_city_pharmacies,
+    redis_has_data,
+    save_scrape_state,
+)
 from city_mapping import get_city_name
-from upstash_redis import Redis
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-
-def get_redis_client():
-    try:
-        return Redis(
-            url=os.getenv("UPSTASH_REDIS_REST_URL"),
-            token=os.getenv("UPSTASH_REDIS_REST_TOKEN"),
-        )
-    except Exception as e:
-        print(f"✗ Redis connection failed: {e}")
-        return None
-
-
-def get_turkish_time():
-    turkish_tz = timezone(timedelta(hours=3))
-    utc_now = datetime.now(timezone.utc)
-    return utc_now.astimezone(turkish_tz)
-
-
-def format_date(date_obj):
-    return date_obj.strftime("%d/%m/%Y")
-
-
-def redis_has_data(redis_client, date_key):
-    try:
-        if not redis_client:
-            return False
-        existing_data = redis_client.get(date_key)
-        if existing_data:
-            data = json.loads(existing_data)
-            if len(data) == 0:
-                return False
-            
-            cities_found = set()
-            required_cities = {get_city_name("1").title(), get_city_name("45").title(), get_city_name("81").title()}
-            
-            for pharmacy in data:
-                city = pharmacy.get("city", "")
-                if city in required_cities:
-                    cities_found.add(city)
-            
-            return len(cities_found) == 3
-        return False
-    except Exception as e:
-        print(f"✗ Redis check error: {e}")
-        return False
-
-
-def save_to_redis(redis_client, date_key, plaka_kodu, pharmacies):
-    try:
-        if not redis_client:
-            return False
-
-        city_name = get_city_name(plaka_kodu).title()
-        redis_data = []
-
-        for pharmacy in pharmacies:
-            redis_data.append(
-                {
-                    "city": city_name,
-                    "district": pharmacy.get("İlçe", ""),
-                    "name": pharmacy.get("Ad", ""),
-                    "phone": pharmacy.get("Telefon", ""),
-                    "address": pharmacy.get("Adres", ""),
-                    "lat": pharmacy.get("Lat"),
-                    "long": pharmacy.get("Long"),
-                }
-            )
-
-        existing_data = redis_client.get(date_key)
-        if existing_data:
-            existing_list = json.loads(existing_data)
-            existing_list.extend(redis_data)
-            redis_client.set(
-                date_key, json.dumps(existing_list, ensure_ascii=False), ex=604800
-            )
-        else:
-            redis_client.set(
-                date_key, json.dumps(redis_data, ensure_ascii=False), ex=604800
-            )
-
-        return True
-    except Exception:
-        return False
+from parser import ScrapeSession
 
 
 def process_single_date(redis_client, date_str):
     successful = 0
     failed = 0
+    skipped = 0
+
+    scrape_session = ScrapeSession(date_str)
+    if not scrape_session.start():
+        available = ", ".join(scrape_session.available_dates) or "none"
+        print(f"✗ Date {date_str} is not available on site (options: {available})")
+        return
+
+    all_pharmacies, completed_cities = load_scrape_state(redis_client, date_str)
 
     print(f"Starting pharmacy data collection for {date_str}")
     print(f"Redis connection: {'✓ Connected' if redis_client else '✗ Not connected'}")
+    if completed_cities:
+        print(f"Resuming scrape: {len(completed_cities)}/81 cities already completed")
     print("=" * 60)
 
     for plaka_kodu in range(1, 82):
         plaka_str = str(plaka_kodu)
         city_name = get_city_name(plaka_str)
 
+        if plaka_str in completed_cities:
+            print(f"Skipping {plaka_kodu:2d}/81: {city_name} ({plaka_str}) ... already done")
+            skipped += 1
+            continue
+
         print(f"Processing {plaka_kodu:2d}/81: {city_name} ({plaka_str})", end=" ... ")
 
         try:
-            result = parser(plaka_str, date_str)
+            result = scrape_session.scrape_city(plaka_str)
 
-            if result["success"] and result["list"]:
-                # Check coordinate quality for reporting
-                missing_coords = sum(1 for p in result["list"] if not p.get("Lat") or not p.get("Long"))
-                coord_info = ""
-                if missing_coords > 0:
-                    coord_percentage = ((result["count"] - missing_coords) / result["count"]) * 100
-                    coord_info = f", {coord_percentage:.0f}% coords"
-                
-                redis_saved = save_to_redis(
-                    redis_client, date_str, plaka_str, result["list"]
+            if result["success"]:
+                all_pharmacies = merge_city_pharmacies(
+                    all_pharmacies, plaka_str, result["list"]
+                )
+                completed_cities.add(plaka_str)
+                redis_saved = save_scrape_state(
+                    redis_client, date_str, all_pharmacies, completed_cities
                 )
                 redis_status = "✓" if redis_saved else "✗"
-                print(f"✓ {result['count']} pharmacies ({result['tooktime']}s{coord_info}) Redis:{redis_status}")
-                successful += 1
-            elif result["success"] and result["count"] == 0:
-                # Empty result (already retried if suspicious)
-                print(f"✓ 0 pharmacies ({result['tooktime']}s)")
+
+                coord_info = ""
+                if result["count"] > 0:
+                    missing_coords = sum(
+                        1 for p in result["list"] if not p.get("Lat") or not p.get("Long")
+                    )
+                    if missing_coords > 0:
+                        coord_percentage = (
+                            (result["count"] - missing_coords) / result["count"]
+                        ) * 100
+                        coord_info = f", {coord_percentage:.0f}% coords"
+
+                print(
+                    f"✓ {result['count']} pharmacies ({result['tooktime']}s{coord_info}) Redis:{redis_status}"
+                )
                 successful += 1
             else:
                 print(f"✗ Failed ({result['tooktime']}s)")
@@ -139,26 +81,24 @@ def process_single_date(redis_client, date_str):
             failed += 1
 
         time.sleep(2)
-        gc.collect()
 
-    print(f"\n📊 FINAL RESULTS: ✓ {successful} successful, ✗ {failed} failed")
+    print(
+        f"\n📊 FINAL RESULTS: ✓ {successful} successful, ↷ {skipped} skipped, ✗ {failed} failed"
+    )
 
 
-def process_multiple_dates(days=2):
+def process_multiple_dates():
     redis_client = get_redis_client()
-    current_date = get_turkish_time()
+    scrape_dates = get_scrape_dates()
 
-    for day_offset in range(days):
-        target_date = current_date + timedelta(days=day_offset)
-        date_str = format_date(target_date)
-
+    for date_str in scrape_dates:
         print(f"\nChecking date: {date_str}")
 
         if redis_has_data(redis_client, date_str):
             print(f"✓ Data already exists for {date_str} - SKIPPING")
             continue
 
-        print(f"✗ No data found for {date_str} - PROCESSING")
+        print(f"✗ No complete data for {date_str} - PROCESSING")
 
         try:
             process_single_date(redis_client, date_str)
@@ -174,7 +114,6 @@ def process_multiple_dates(days=2):
 
 
 def run_scheduler():
-
     while True:
         try:
             current_time = get_turkish_time()
@@ -182,9 +121,7 @@ def run_scheduler():
                 f"\n🕐 Starting collection at: {current_time.strftime('%d/%m/%Y %H:%M:%S')} (UTC+3)"
             )
 
-            process_multiple_dates(2)
-
-
+            process_multiple_dates()
             time.sleep(43200)
 
         except KeyboardInterrupt:
