@@ -23,17 +23,17 @@ services:
       args:
         NODE_ENV: production
         NEXT_TELEMETRY_DISABLED: '1'
-        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3000}
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3458}
         NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
     container_name: nobetcim-web
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3000}
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3458}
       NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: '1'
     ports:
-      - '${WEB_PORT:-3000}:3000'
+      - '3458:3000'
     depends_on:
       postgres:
         condition: service_healthy

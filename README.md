@@ -72,7 +72,7 @@ Services:
 
 - `postgres` — internal database (init from `db/migrations/0000_initial.sql`)
 - `pharmacy-scraper` — scheduled scraper writing to PostgreSQL
-- `web` — Next.js app on `${WEB_PORT:-3000}`
+- `web` — Next.js app on port `3458`
 
 ## Contributing
 
