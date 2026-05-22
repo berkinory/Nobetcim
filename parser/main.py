@@ -16,6 +16,7 @@ from config import (
 from dates import get_active_scrape_dates, get_turkey_now
 from scraper import ScrapeResult, ScrapeSession
 from storage import (
+    check_db_connection,
     get_pool,
     is_scrape_complete,
     load_completed_cities,
@@ -62,7 +63,7 @@ def process_single_date(date_str: str) -> None:
     skipped_count = TOTAL_CITY_COUNT - len(pending)
 
     print(f"Starting pharmacy data collection for {date_str}")
-    print(f"Database connection: {'✓ Connected' if get_pool() else '✗ Not connected'}")
+    print(f"Database connection: {'✓ Connected' if check_db_connection() else '✗ Not connected'}")
     print(f"Workers: {CITY_WORKER_COUNT}")
     if skipped_count:
         print(f"Resuming scrape: {skipped_count}/{TOTAL_CITY_COUNT} cities already completed")

@@ -1,4 +1,5 @@
 requests
 beautifulsoup4
 lxml
-psycopg[binary,pool]
+sqlalchemy>=2.0
+psycopg[binary]

@@ -6,7 +6,7 @@ from city_mapping import get_city_name
 from config import MAX_PLATE_CODE, MIN_PLATE_CODE
 from dates import format_scrape_date, get_turkey_now
 from scraper import ScrapeSession, is_valid_plate_code
-from storage import get_pool, save_city_pharmacies
+from storage import check_db_connection, save_city_pharmacies
 
 CITY_CODE = ""
 
@@ -19,9 +19,7 @@ def manual_scrape() -> bool:
         print(f"✗ Set CITY_CODE to a valid plate code between {MIN_PLATE_CODE} and {MAX_PLATE_CODE}")
         return False
 
-    try:
-        get_pool()
-    except Exception:
+    if not check_db_connection():
         print("✗ Database connection failed")
         return False
 

@@ -3,41 +3,36 @@ from __future__ import annotations
 from typing import Any
 
 from city_mapping import get_city_name
-from config import CITY_WORKER_COUNT, DATABASE_URL, TOTAL_CITY_COUNT
+from config import TOTAL_CITY_COUNT
 from dates import parse_scrape_date
-from psycopg.rows import dict_row
-from psycopg_pool import ConnectionPool
+from db import check_db_connection, get_session_factory
+from models import CompletedCity, Pharmacy
+from sqlalchemy import delete, select
+from sqlalchemy.dialects.postgresql import insert
 
 PharmacyRecord = dict[str, Any]
 
-_pool: ConnectionPool | None = None
+
+def get_pool():
+    return get_session_factory()
 
 
-def get_pool() -> ConnectionPool:
-    global _pool
-
-    if _pool is None:
-        _pool = ConnectionPool(
-            DATABASE_URL,
-            min_size=1,
-            max_size=max(CITY_WORKER_COUNT + 2, 4),
-            kwargs={"row_factory": dict_row},
-        )
-
-    return _pool
-
-
-def to_storage_records(plate_code: str, pharmacies: list[PharmacyRecord]) -> list[tuple[Any, ...]]:
+def to_pharmacy_models(
+    duty_date,
+    plate_code: str,
+    pharmacies: list[PharmacyRecord],
+) -> list[Pharmacy]:
     city_name = get_city_name(plate_code).title()
     return [
-        (
-            city_name,
-            pharmacy.get("İlçe", ""),
-            pharmacy.get("Ad", ""),
-            pharmacy.get("Telefon", ""),
-            pharmacy.get("Adres", ""),
-            pharmacy.get("Lat"),
-            pharmacy.get("Long"),
+        Pharmacy(
+            duty_date=duty_date,
+            city=city_name,
+            district=pharmacy.get("İlçe", ""),
+            name=pharmacy.get("Ad", ""),
+            phone=pharmacy.get("Telefon", ""),
+            address=pharmacy.get("Adres", ""),
+            lat=pharmacy.get("Lat"),
+            long=pharmacy.get("Long"),
         )
         for pharmacy in pharmacies
     ]
@@ -47,62 +42,45 @@ def load_completed_cities(date_str: str) -> set[str]:
     duty_date = parse_scrape_date(date_str)
 
     try:
-        with get_pool().connection() as connection:
-            rows = connection.execute(
-                """
-                SELECT plate_code::text AS plate_code
-                FROM completed_cities
-                WHERE duty_date = %s
-                """,
-                (duty_date,),
-            ).fetchall()
-        return {row["plate_code"] for row in rows}
+        with get_session_factory()() as session:
+            plate_codes = session.scalars(
+                select(CompletedCity.plate_code).where(
+                    CompletedCity.duty_date == duty_date
+                )
+            ).all()
+        return {str(plate_code) for plate_code in plate_codes}
     except Exception as error:
         print(f"✗ Database load error: {error}")
         return set()
 
 
-def save_city_pharmacies(date_str: str, plate_code: str, pharmacies: list[PharmacyRecord]) -> bool:
+def save_city_pharmacies(
+    date_str: str, plate_code: str, pharmacies: list[PharmacyRecord]
+) -> bool:
     duty_date = parse_scrape_date(date_str)
     city_name = get_city_name(plate_code).title()
-    records = to_storage_records(plate_code, pharmacies)
 
     try:
-        with get_pool().connection() as connection:
-            with connection.transaction():
-                connection.execute(
-                    """
-                    DELETE FROM pharmacies
-                    WHERE duty_date = %s AND city = %s
-                    """,
-                    (duty_date, city_name),
+        with get_session_factory()() as session:
+            with session.begin():
+                session.execute(
+                    delete(Pharmacy).where(
+                        Pharmacy.duty_date == duty_date,
+                        Pharmacy.city == city_name,
+                    )
                 )
 
-                if records:
-                    connection.executemany(
-                        """
-                        INSERT INTO pharmacies (
-                            duty_date,
-                            city,
-                            district,
-                            name,
-                            phone,
-                            address,
-                            lat,
-                            long
-                        )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        [(duty_date, *record) for record in records],
+                if pharmacies:
+                    session.add_all(
+                        to_pharmacy_models(duty_date, plate_code, pharmacies)
                     )
 
-                connection.execute(
-                    """
-                    INSERT INTO completed_cities (duty_date, plate_code)
-                    VALUES (%s, %s)
-                    ON CONFLICT (duty_date, plate_code) DO NOTHING
-                    """,
-                    (duty_date, int(plate_code)),
+                session.execute(
+                    insert(CompletedCity)
+                    .values(duty_date=duty_date, plate_code=int(plate_code))
+                    .on_conflict_do_nothing(
+                        index_elements=["duty_date", "plate_code"]
+                    )
                 )
 
         return True
@@ -113,3 +91,13 @@ def save_city_pharmacies(date_str: str, plate_code: str, pharmacies: list[Pharma
 
 def is_scrape_complete(date_str: str) -> bool:
     return len(load_completed_cities(date_str)) >= TOTAL_CITY_COUNT
+
+
+__all__ = [
+    "PharmacyRecord",
+    "check_db_connection",
+    "get_pool",
+    "is_scrape_complete",
+    "load_completed_cities",
+    "save_city_pharmacies",
+]
