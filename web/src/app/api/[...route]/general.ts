@@ -60,7 +60,7 @@ function getCurrentActiveDate(): string {
     );
 
     const cutoffTime = new Date(today);
-    cutoffTime.setHours(8, 30, 0, 0);
+    cutoffTime.setHours(8, 0, 0, 0);
 
     const targetDate =
         utcPlus3 < cutoffTime
