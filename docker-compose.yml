@@ -10,7 +10,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./db/migrations/0000_initial.sql:/docker-entrypoint-initdb.d/0000_initial.sql:ro
     networks:
-      - nobetcim
+      - internal
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U nobetcim -d nobetcim']
       interval: 5s
@@ -23,17 +23,16 @@ services:
       args:
         NODE_ENV: production
         NEXT_TELEMETRY_DISABLED: '1'
-        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3458}
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-https://nobetcim.app}
         NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
-    container_name: nobetcim-web
     restart: unless-stopped
     environment:
-      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3458}
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-https://nobetcim.app}
       NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: '1'
-    ports:
-      - '3458:3000'
+    expose:
+      - '3000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -48,12 +47,12 @@ services:
       retries: 10
       start_period: 30s
     networks:
-      - nobetcim
+      - internal
+      - dokploy-network
 
   pharmacy-scraper:
     build:
       context: ./parser
-    container_name: pharmacy-scraper
     restart: unless-stopped
     depends_on:
       postgres:
@@ -61,12 +60,13 @@ services:
       web:
         condition: service_healthy
     networks:
-      - nobetcim
+      - internal
 
 networks:
-  nobetcim:
-    name: nobetcim
+  internal:
     driver: bridge
+  dokploy-network:
+    external: true
 
 volumes:
   postgres_data:
