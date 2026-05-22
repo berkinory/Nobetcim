@@ -1,0 +1,30 @@
+REDIS_TTL_SECONDS = 604800
+TOTAL_CITY_COUNT = 81
+MIN_PLATE_CODE = 1
+MAX_PLATE_CODE = 81
+
+CITY_WORKER_COUNT = 3
+MAX_RETRIES = 5
+RETRY_BACKOFF_SECONDS = 1
+COORD_DELAY_SECONDS = 0
+COORD_MAX_RETRIES = 3
+REQUEST_TIMEOUT_SECONDS = 10
+COORD_COMPLETION_THRESHOLD = 50
+COORD_FILL_MAX_PASSES = 3
+
+SCHEDULER_INTERVAL_SECONDS = 43_200
+SCHEDULER_ERROR_RETRY_SECONDS = 600
+
+TITCK_BASE_URL = "https://www.turkiye.gov.tr/saglik-titck-nobetci-eczane-sorgulama"
+TITCK_SUBMIT_URL = f"{TITCK_BASE_URL}?submit"
+TITCK_RESULTS_URL = f"{TITCK_BASE_URL}?nobetci=Eczaneler"
+
+DEFAULT_HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+    "Referer": TITCK_BASE_URL,
+    "Connection": "keep-alive",
+    "Accept-Encoding": "gzip, deflate",
+}
+
+TURKEY_UTC_OFFSET = 3
