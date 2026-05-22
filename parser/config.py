@@ -1,4 +1,3 @@
-REDIS_TTL_SECONDS = 604800
 TOTAL_CITY_COUNT = 81
 MIN_PLATE_CODE = 1
 MAX_PLATE_CODE = 81
@@ -28,3 +27,5 @@ DEFAULT_HEADERS = {
 }
 
 TURKEY_UTC_OFFSET = 3
+
+DATABASE_URL = "postgresql://nobetcim:nobetcim@postgres:5432/nobetcim"

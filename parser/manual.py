@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from city_mapping import get_city_name
-from config import MAX_PLATE_CODE, MIN_PLATE_CODE, REDIS_TTL_SECONDS
+from config import MAX_PLATE_CODE, MIN_PLATE_CODE
 from dates import format_scrape_date, get_turkey_now
 from scraper import ScrapeSession, is_valid_plate_code
-from storage import get_redis_client, load_scrape_state, merge_city_records, save_scrape_state
+from storage import get_pool, save_city_pharmacies
 
 CITY_CODE = ""
 
@@ -19,8 +19,13 @@ def manual_scrape() -> bool:
         print(f"✗ Set CITY_CODE to a valid plate code between {MIN_PLATE_CODE} and {MAX_PLATE_CODE}")
         return False
 
-    redis_client = get_redis_client()
-    print(f"Redis connection: {'✓ Connected' if redis_client else '✗ Not connected'}")
+    try:
+        get_pool()
+    except Exception:
+        print("✗ Database connection failed")
+        return False
+
+    print("Database connection: ✓ Connected")
 
     now = get_turkey_now()
     date_str = format_scrape_date(now)
@@ -48,23 +53,17 @@ def manual_scrape() -> bool:
 
         print(f"✓ Found {result['count']} pharmacies ({result['tooktime']}s)")
 
-        all_pharmacies, completed_cities = load_scrape_state(redis_client, date_str)
-        all_pharmacies = merge_city_records(all_pharmacies, CITY_CODE, result["list"])
-        completed_cities.add(CITY_CODE)
-
-        print("Saving to Upstash Redis...", end=" ")
-        if not save_scrape_state(redis_client, date_str, all_pharmacies, completed_cities):
-            print("✗ Failed to save to Upstash")
+        print("Saving to PostgreSQL...", end=" ")
+        if not save_city_pharmacies(date_str, CITY_CODE, result["list"]):
+            print("✗ Failed to save to PostgreSQL")
             return False
 
-        print("✓ Successfully saved to Upstash")
+        print("✓ Successfully saved")
         print("\nSummary:")
         print(f"- City: {city_name}")
         print(f"- Date: {date_str}")
         print(f"- Pharmacies: {result['count']}")
         print(f"- Processing time: {result['tooktime']}s")
-        print(f"- Redis key: {date_str}")
-        print(f"- Data expires in: {REDIS_TTL_SECONDS // 86_400} days")
         return True
     except Exception as error:
         print(f"✗ Error: {error}")
@@ -74,7 +73,7 @@ def manual_scrape() -> bool:
 if __name__ == "__main__":
     try:
         if manual_scrape():
-            print("\n🎉 Pharmacy data successfully collected and saved to Upstash!")
+            print("\n🎉 Pharmacy data successfully collected and saved!")
         else:
             print("\n❌ Failed to collect pharmacy data")
     except KeyboardInterrupt:

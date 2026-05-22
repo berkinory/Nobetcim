@@ -37,15 +37,42 @@ This project was built using modern web and data processing technologies.
 
 | Category            | Technology                                                                                             |
 | ------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Frontend (Web)**  | `Next.js`, `React`, `Tailwind CSS`, `MapLibre GL`   |
-| **Backend (Parser)**| `Python`, `Upstash Redis`                             |
+| **Frontend (Web)**  | `Next.js`, `React`, `Tailwind CSS`, `MapLibre GL`, `Drizzle ORM`   |
+| **Database**        | `PostgreSQL` (self-hosted via Docker Compose)                      |
+| **Backend (Parser)**| `Python`, `PostgreSQL`                                             |
 
 ## Project Structure
 
-The project consists of two main parts:
+The project consists of three main parts:
 
--   `parser/`: A Python script that regularly scrapes on-duty pharmacy data from turkiye.gov.tr and saves it to an Upstash Redis database. This part is containerized with Docker.
--   `web/`: The Next.js frontend code where users view the pharmacies on the map.
+-   `parser/`: A Python script that regularly scrapes on-duty pharmacy data from turkiye.gov.tr and saves it to PostgreSQL. Containerized with Docker.
+-   `web/`: The Next.js frontend where users view pharmacies on the map. Reads data from PostgreSQL via Drizzle ORM.
+-   `db/`: SQL migrations for the PostgreSQL schema.
+
+## Deployment
+
+All services run on the same Docker network. PostgreSQL is **not** exposed to the host — only `web` and internal services can reach it.
+
+```bash
+cp .env.example .env
+# set NEXT_PUBLIC_MAPTILER_API_KEY
+
+docker compose up -d --build
+```
+
+PostgreSQL credentials are hardcoded in the repo (`nobetcim` / `nobetcim`) and only reachable on the internal Docker network.
+
+To apply SQL migrations manually (e.g. after adding a new file under `db/migrations/`):
+
+```bash
+cd web && bun run db:migrate
+```
+
+Services:
+
+- `postgres` — internal database (init from `db/migrations/0000_initial.sql`)
+- `pharmacy-scraper` — scheduled scraper writing to PostgreSQL
+- `web` — Next.js app on `${WEB_PORT:-3000}`
 
 ## Contributing
 

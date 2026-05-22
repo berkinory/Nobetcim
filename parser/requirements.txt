@@ -1,5 +1,4 @@
 requests
 beautifulsoup4
-upstash-redis
-python-dotenv
 lxml
+psycopg[binary,pool]

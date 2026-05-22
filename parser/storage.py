@@ -1,104 +1,115 @@
 from __future__ import annotations
 
-import json
-import os
 from typing import Any
 
 from city_mapping import get_city_name
-from config import REDIS_TTL_SECONDS, TOTAL_CITY_COUNT
-from dotenv import load_dotenv
-from upstash_redis import Redis
-
-load_dotenv()
+from config import CITY_WORKER_COUNT, DATABASE_URL, TOTAL_CITY_COUNT
+from dates import parse_scrape_date
+from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 
 PharmacyRecord = dict[str, Any]
-RedisPharmacyRecord = dict[str, Any]
+
+_pool: ConnectionPool | None = None
 
 
-def get_redis_client() -> Redis | None:
-    try:
-        return Redis(
-            url=os.getenv("UPSTASH_REDIS_REST_URL"),
-            token=os.getenv("UPSTASH_REDIS_REST_TOKEN"),
+def get_pool() -> ConnectionPool:
+    global _pool
+
+    if _pool is None:
+        _pool = ConnectionPool(
+            DATABASE_URL,
+            min_size=1,
+            max_size=max(CITY_WORKER_COUNT + 2, 4),
+            kwargs={"row_factory": dict_row},
         )
-    except Exception as error:
-        print(f"✗ Redis connection failed: {error}")
-        return None
+
+    return _pool
 
 
-def scrape_meta_key(date_key: str) -> str:
-    return f"{date_key}:meta"
-
-
-def to_redis_records(plate_code: str, pharmacies: list[PharmacyRecord]) -> list[RedisPharmacyRecord]:
+def to_storage_records(plate_code: str, pharmacies: list[PharmacyRecord]) -> list[tuple[Any, ...]]:
     city_name = get_city_name(plate_code).title()
     return [
-        {
-            "city": city_name,
-            "district": pharmacy.get("İlçe", ""),
-            "name": pharmacy.get("Ad", ""),
-            "phone": pharmacy.get("Telefon", ""),
-            "address": pharmacy.get("Adres", ""),
-            "lat": pharmacy.get("Lat"),
-            "long": pharmacy.get("Long"),
-        }
+        (
+            city_name,
+            pharmacy.get("İlçe", ""),
+            pharmacy.get("Ad", ""),
+            pharmacy.get("Telefon", ""),
+            pharmacy.get("Adres", ""),
+            pharmacy.get("Lat"),
+            pharmacy.get("Long"),
+        )
         for pharmacy in pharmacies
     ]
 
 
-def merge_city_records(
-    existing_records: list[RedisPharmacyRecord],
-    plate_code: str,
-    pharmacies: list[PharmacyRecord],
-) -> list[RedisPharmacyRecord]:
-    city_name = get_city_name(plate_code).title()
-    without_city = [record for record in existing_records if record.get("city") != city_name]
-    without_city.extend(to_redis_records(plate_code, pharmacies))
-    return without_city
-
-
-def load_scrape_state(redis_client: Redis | None, date_key: str) -> tuple[list[RedisPharmacyRecord], set[str]]:
-    if redis_client is None:
-        return [], set()
-
-    pharmacies: list[RedisPharmacyRecord] = []
-    completed_cities: set[str] = set()
+def load_completed_cities(date_str: str) -> set[str]:
+    duty_date = parse_scrape_date(date_str)
 
     try:
-        existing_data = redis_client.get(date_key)
-        if existing_data:
-            pharmacies = json.loads(existing_data)
-
-        metadata = redis_client.get(scrape_meta_key(date_key))
-        if metadata:
-            completed_cities = set(json.loads(metadata).get("completed_cities", []))
+        with get_pool().connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT plate_code::text AS plate_code
+                FROM completed_cities
+                WHERE duty_date = %s
+                """,
+                (duty_date,),
+            ).fetchall()
+        return {row["plate_code"] for row in rows}
     except Exception as error:
-        print(f"✗ Redis load error: {error}")
+        print(f"✗ Database load error: {error}")
+        return set()
 
-    return pharmacies, completed_cities
 
-
-def save_scrape_state(
-    redis_client: Redis | None,
-    date_key: str,
-    pharmacies: list[RedisPharmacyRecord],
-    completed_cities: set[str],
-) -> bool:
-    if redis_client is None:
-        return False
+def save_city_pharmacies(date_str: str, plate_code: str, pharmacies: list[PharmacyRecord]) -> bool:
+    duty_date = parse_scrape_date(date_str)
+    city_name = get_city_name(plate_code).title()
+    records = to_storage_records(plate_code, pharmacies)
 
     try:
-        payload = json.dumps(pharmacies, ensure_ascii=False)
-        metadata = json.dumps({"completed_cities": sorted(completed_cities, key=int)})
+        with get_pool().connection() as connection:
+            with connection.transaction():
+                connection.execute(
+                    """
+                    DELETE FROM pharmacies
+                    WHERE duty_date = %s AND city = %s
+                    """,
+                    (duty_date, city_name),
+                )
 
-        redis_client.set(date_key, payload, ex=REDIS_TTL_SECONDS)
-        redis_client.set(scrape_meta_key(date_key), metadata, ex=REDIS_TTL_SECONDS)
+                if records:
+                    connection.executemany(
+                        """
+                        INSERT INTO pharmacies (
+                            duty_date,
+                            city,
+                            district,
+                            name,
+                            phone,
+                            address,
+                            lat,
+                            long
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [(duty_date, *record) for record in records],
+                    )
+
+                connection.execute(
+                    """
+                    INSERT INTO completed_cities (duty_date, plate_code)
+                    VALUES (%s, %s)
+                    ON CONFLICT (duty_date, plate_code) DO NOTHING
+                    """,
+                    (duty_date, int(plate_code)),
+                )
+
         return True
     except Exception as error:
-        print(f"✗ Redis save error: {error}")
+        print(f"✗ Database save error: {error}")
         return False
 
 
-def is_scrape_complete(redis_client: Redis | None, date_key: str) -> bool:
-    _, completed_cities = load_scrape_state(redis_client, date_key)
-    return len(completed_cities) >= TOTAL_CITY_COUNT
+def is_scrape_complete(date_str: str) -> bool:
+    return len(load_completed_cities(date_str)) >= TOTAL_CITY_COUNT

@@ -16,11 +16,10 @@ from config import (
 from dates import get_active_scrape_dates, get_turkey_now
 from scraper import ScrapeResult, ScrapeSession
 from storage import (
-    get_redis_client,
+    get_pool,
     is_scrape_complete,
-    load_scrape_state,
-    merge_city_records,
-    save_scrape_state,
+    load_completed_cities,
+    save_city_pharmacies,
 )
 
 
@@ -31,7 +30,7 @@ def scrape_city_job(date_str: str, plate_code: str) -> tuple[str, ScrapeResult]:
     return plate_code, session.scrape_city(plate_code)
 
 
-def format_success_line(result: ScrapeResult, redis_saved: bool) -> str:
+def format_success_line(result: ScrapeResult, saved: bool) -> str:
     coord_suffix = ""
     if result["count"] > 0:
         missing_coords = sum(1 for pharmacy in result["list"] if not pharmacy.get("Lat") or not pharmacy.get("Long"))
@@ -39,8 +38,8 @@ def format_success_line(result: ScrapeResult, redis_saved: bool) -> str:
             completion_rate = ((result["count"] - missing_coords) / result["count"]) * 100
             coord_suffix = f", {completion_rate:.0f}% coords"
 
-    redis_status = "✓" if redis_saved else "✗"
-    return f"✓ {result['count']} pharmacies ({result['tooktime']}s{coord_suffix}) Redis:{redis_status}"
+    db_status = "✓" if saved else "✗"
+    return f"✓ {result['count']} pharmacies ({result['tooktime']}s{coord_suffix}) DB:{db_status}"
 
 
 def pending_plate_codes(completed_cities: set[str]) -> list[str]:
@@ -51,19 +50,19 @@ def pending_plate_codes(completed_cities: set[str]) -> list[str]:
     ]
 
 
-def process_single_date(redis_client, date_str: str) -> None:
+def process_single_date(date_str: str) -> None:
     probe = ScrapeSession(date_str)
     if not probe.start():
         available = ", ".join(probe.available_dates) or "none"
         print(f"✗ Date {date_str} is not available on site (options: {available})")
         return
 
-    all_pharmacies, completed_cities = load_scrape_state(redis_client, date_str)
+    completed_cities = load_completed_cities(date_str)
     pending = pending_plate_codes(completed_cities)
     skipped_count = TOTAL_CITY_COUNT - len(pending)
 
     print(f"Starting pharmacy data collection for {date_str}")
-    print(f"Redis connection: {'✓ Connected' if redis_client else '✗ Not connected'}")
+    print(f"Database connection: {'✓ Connected' if get_pool() else '✗ Not connected'}")
     print(f"Workers: {CITY_WORKER_COUNT}")
     if skipped_count:
         print(f"Resuming scrape: {skipped_count}/{TOTAL_CITY_COUNT} cities already completed")
@@ -71,7 +70,7 @@ def process_single_date(redis_client, date_str: str) -> None:
 
     successful = 0
     failed = 0
-    state_lock = threading.Lock()
+    save_lock = threading.Lock()
 
     with ThreadPoolExecutor(max_workers=CITY_WORKER_COUNT) as executor:
         futures = {
@@ -101,17 +100,10 @@ def process_single_date(redis_client, date_str: str) -> None:
             )
 
             if result["success"]:
-                with state_lock:
-                    all_pharmacies = merge_city_records(all_pharmacies, plate_code, result["list"])
-                    completed_cities.add(plate_code)
-                    redis_saved = save_scrape_state(
-                        redis_client,
-                        date_str,
-                        all_pharmacies,
-                        completed_cities,
-                    )
+                with save_lock:
+                    saved = save_city_pharmacies(date_str, plate_code, result["list"])
 
-                print(format_success_line(result, redis_saved))
+                print(format_success_line(result, saved))
                 successful += 1
             else:
                 print(f"✗ Failed ({result['tooktime']}s)")
@@ -124,19 +116,19 @@ def process_single_date(redis_client, date_str: str) -> None:
 
 
 def process_active_dates() -> None:
-    redis_client = get_redis_client()
+    get_pool()
 
     for date_str in get_active_scrape_dates():
         print(f"\nChecking date: {date_str}")
 
-        if is_scrape_complete(redis_client, date_str):
+        if is_scrape_complete(date_str):
             print(f"✓ Data already exists for {date_str} - SKIPPING")
             continue
 
         print(f"✗ No complete data for {date_str} - PROCESSING")
 
         try:
-            process_single_date(redis_client, date_str)
+            process_single_date(date_str)
             print(f"✓ Completed processing for {date_str}")
         except KeyboardInterrupt:
             print(f"\n\nProcess interrupted by user while processing {date_str}")

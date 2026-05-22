@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nobetcim
+      POSTGRES_PASSWORD: nobetcim
+      POSTGRES_DB: nobetcim
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/migrations/0000_initial.sql:/docker-entrypoint-initdb.d/0000_initial.sql:ro
+    networks:
+      - nobetcim
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nobetcim -d nobetcim']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ./web
+      args:
+        NODE_ENV: production
+        NEXT_TELEMETRY_DISABLED: '1'
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3000}
+        NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
+    container_name: nobetcim-web
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-http://localhost:3000}
+      NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: '1'
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'bun -e "fetch(''http://127.0.0.1:3000'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - nobetcim
+
+  pharmacy-scraper:
+    build:
+      context: ./parser
+    container_name: pharmacy-scraper
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - nobetcim
+
+networks:
+  nobetcim:
+    name: nobetcim
+    driver: bridge
+
+volumes:
+  postgres_data:

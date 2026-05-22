@@ -18,10 +18,6 @@ RUN apt-get update && apt-get install -y \
     libxslt1.1 \
     && rm -rf /var/lib/apt/lists/*
 
-ARG UPSTASH_REDIS_REST_URL
-ARG UPSTASH_REDIS_REST_TOKEN
-ENV UPSTASH_REDIS_REST_URL=$UPSTASH_REDIS_REST_URL
-ENV UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONIOENCODING=utf-8
 
@@ -33,4 +29,4 @@ COPY --chown=parser:nogroup . .
 
 USER parser
 
-CMD ["python", "-u", "main.py"] 
+CMD ["python", "-u", "main.py"]

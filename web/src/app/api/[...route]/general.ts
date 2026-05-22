@@ -1,5 +1,9 @@
+import { eq } from 'drizzle-orm';
 import { Hono } from 'hono';
-import { Redis } from '@upstash/redis';
+
+import { db } from '@/db';
+import { pharmacies } from '@/db/schema';
+
 import { createResponse } from './utils';
 
 export const generalRoutes = new Hono();
@@ -14,18 +18,12 @@ interface PharmacyData {
     long: number;
 }
 
-const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL || '',
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
-
 generalRoutes.get('/pharmacy', async () => {
     try {
         const dateKey = getCurrentActiveDate();
-
         const pharmacyData = await getPharmacyData(dateKey);
 
-        if (!pharmacyData) {
+        if (!pharmacyData.length) {
             return createResponse(
                 false,
                 `No pharmacy data found for ${dateKey}`
@@ -76,23 +74,34 @@ function getCurrentActiveDate(): string {
     return `${day}/${month}/${year}`;
 }
 
-async function getPharmacyData(
-    dateKey: string
-): Promise<PharmacyData[] | null> {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+function parseDisplayDate(dateKey: string): string {
+    const [day, month, year] = dateKey.split('/');
+    return `${year}-${month}-${day}`;
+}
 
-    if (!url || !token) {
-        throw new Error(
-            'Missing Redis environment variables: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN required'
-        );
-    }
+async function getPharmacyData(dateKey: string): Promise<PharmacyData[]> {
+    const dutyDate = parseDisplayDate(dateKey);
 
-    try {
-        const data = await redis.get<PharmacyData[]>(dateKey);
-        return data || null;
-    } catch (error) {
-        console.error('Redis error:', error);
-        throw new Error('Failed to fetch data from Redis');
-    }
+    const rows = await db
+        .select({
+            city: pharmacies.city,
+            district: pharmacies.district,
+            name: pharmacies.name,
+            phone: pharmacies.phone,
+            address: pharmacies.address,
+            lat: pharmacies.lat,
+            long: pharmacies.long,
+        })
+        .from(pharmacies)
+        .where(eq(pharmacies.dutyDate, dutyDate));
+
+    return rows.map((row) => ({
+        city: row.city,
+        district: row.district,
+        name: row.name,
+        phone: row.phone,
+        address: row.address,
+        lat: row.lat ?? 0,
+        long: row.long ?? 0,
+    }));
 }
