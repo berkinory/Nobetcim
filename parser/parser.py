@@ -1,12 +1,18 @@
 import re
 import time
-from functools import wraps
 
 import requests
 from bs4 import BeautifulSoup
 
+from common import (
+    COORD_DELAY,
+    COORD_MAX_RETRIES,
+    MAX_RETRIES,
+    REQUEST_TIMEOUT,
+    RETRY_BACKOFF,
+)
+
 BASE_URL = "https://www.turkiye.gov.tr/saglik-titck-nobetci-eczane-sorgulama"
-REQUEST_TIMEOUT = 10
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0",
@@ -15,9 +21,6 @@ HEADERS = {
     "Connection": "keep-alive",
     "Accept-Encoding": "gzip, deflate",
 }
-
-session = requests.Session()
-session.headers.update(HEADERS)
 
 
 def clean_phone_number(phone_text):
@@ -35,36 +38,6 @@ def clean_phone_number(phone_text):
     return phone_text
 
 
-def retry_on_failure(retries=5):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            for attempt in range(1, retries + 1):
-                try:
-                    return func(*args, **kwargs)
-                except requests.RequestException:
-                    if attempt == retries:
-                        raise
-                    time.sleep(5)
-            return None
-
-        return wrapper
-
-    return decorator
-
-
-@retry_on_failure()
-def make_request(url: str, method: str = "GET", **kwargs) -> requests.Response:
-    kwargs.setdefault("timeout", REQUEST_TIMEOUT)
-    kwargs.setdefault("stream", True)
-    if method.upper() == "GET":
-        response = session.get(url, **kwargs)
-    else:
-        response = session.post(url, **kwargs)
-    response.raise_for_status()
-    return response
-
-
 def parse_html(content):
     try:
         return BeautifulSoup(content, "lxml")
@@ -72,8 +45,28 @@ def parse_html(content):
         return BeautifulSoup(content, "html.parser")
 
 
-def fetch_page_context():
-    response = make_request(BASE_URL, stream=False)
+def make_request(http, url: str, method: str = "GET", **kwargs) -> requests.Response:
+    kwargs.setdefault("timeout", REQUEST_TIMEOUT)
+    kwargs.setdefault("stream", True)
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            if method.upper() == "GET":
+                response = http.get(url, **kwargs)
+            else:
+                response = http.post(url, **kwargs)
+            response.raise_for_status()
+            return response
+        except requests.RequestException:
+            if attempt == MAX_RETRIES - 1:
+                raise
+            time.sleep(RETRY_BACKOFF * (attempt + 1))
+
+    raise requests.RequestException("request failed")
+
+
+def fetch_page_context(http):
+    response = make_request(http, BASE_URL, stream=False)
     soup = parse_html(response.content)
     token = soup.body.get("data-token") if soup.body else None
     available_dates = [
@@ -85,12 +78,7 @@ def fetch_page_context():
     return token, available_dates
 
 
-def fetch_token():
-    token, _ = fetch_page_context()
-    return token
-
-
-def submit_query(plaka_kodu: str, tarih: str, token: str) -> None:
+def submit_query(http, plaka_kodu: str, tarih: str, token: str) -> None:
     payload = {
         "ilkod": plaka_kodu,
         "ilkod-address-il": plaka_kodu,
@@ -99,12 +87,12 @@ def submit_query(plaka_kodu: str, tarih: str, token: str) -> None:
         "token": token,
         "btn": "Sorgula",
     }
-    response = make_request(f"{BASE_URL}?submit", method="POST", data=payload, stream=False)
+    response = make_request(http, f"{BASE_URL}?submit", method="POST", data=payload, stream=False)
     response.close()
 
 
-def fetch_pharmacy_rows() -> list:
-    response = make_request(f"{BASE_URL}?nobetci=Eczaneler", stream=False)
+def fetch_pharmacy_rows(http) -> list:
+    response = make_request(http, f"{BASE_URL}?nobetci=Eczaneler", stream=False)
     soup = parse_html(response.content)
     table = soup.find("table", {"id": "searchTable"})
     rows = table.find("tbody").find_all("tr") if table and table.find("tbody") else []
@@ -112,17 +100,18 @@ def fetch_pharmacy_rows() -> list:
     return rows
 
 
-def get_coordinates(index: int, max_retries=3):
+def get_coordinates(http, index: int):
     url_coord = f"{BASE_URL}?harita=Goster&index={index}"
     payload = {"harita": "Goster", "index": str(index)}
 
-    for attempt in range(max_retries):
+    for attempt in range(COORD_MAX_RETRIES):
         try:
-            response = make_request(url_coord, method="POST", data=payload, stream=False)
+            response = make_request(http, url_coord, method="POST", data=payload, stream=False)
             content = response.text
             response.close()
 
-            time.sleep(1)
+            if COORD_DELAY:
+                time.sleep(COORD_DELAY)
 
             lat_match = re.search(r"var latti = parseFloat\(([\d\.]+)\);", content)
             lon_match = re.search(r"var longi = parseFloat\(([\d\.]+)\);", content)
@@ -130,11 +119,11 @@ def get_coordinates(index: int, max_retries=3):
             if lat_match and lon_match:
                 return float(lat_match.group(1)), float(lon_match.group(1))
 
-            if attempt < max_retries - 1:
-                time.sleep((attempt + 1) * 2)
-        except Exception:
-            if attempt < max_retries - 1:
-                time.sleep((attempt + 1) * 2)
+            if attempt < COORD_MAX_RETRIES - 1:
+                time.sleep(RETRY_BACKOFF * (attempt + 1))
+        except requests.RequestException:
+            if attempt < COORD_MAX_RETRIES - 1:
+                time.sleep(RETRY_BACKOFF * (attempt + 1))
 
     return None, None
 
@@ -164,7 +153,7 @@ def parse_pharmacy_rows(rows):
     return pharmacies
 
 
-def fill_missing_coordinates(pharmacies, max_passes=3):
+def fill_missing_coordinates(http, pharmacies, max_passes=3):
     if not pharmacies:
         return pharmacies
 
@@ -178,7 +167,7 @@ def fill_missing_coordinates(pharmacies, max_passes=3):
             break
 
         for pharmacy in missing:
-            lat, lon = get_coordinates(pharmacy["_index"])
+            lat, lon = get_coordinates(http, pharmacy["_index"])
             if lat is not None and lon is not None:
                 pharmacy["Lat"] = lat
                 pharmacy["Long"] = lon
@@ -199,6 +188,8 @@ class ScrapeSession:
         self.submit_date = None
         self.token = None
         self.available_dates = []
+        self.http = requests.Session()
+        self.http.headers.update(HEADERS)
 
     def start(self):
         self.refresh_context()
@@ -212,14 +203,12 @@ class ScrapeSession:
         return True
 
     def refresh_context(self):
-        self.token, self.available_dates = fetch_page_context()
+        self.token, self.available_dates = fetch_page_context(self.http)
 
-    def scrape_city(self, plaka_kodu: str, max_retries=3) -> dict:
+    def scrape_city(self, plaka_kodu: str, max_retries=MAX_RETRIES) -> dict:
         start_time = time.time()
 
         for attempt in range(max_retries):
-            pharmacies = []
-
             try:
                 self.refresh_context()
                 if not self.token or self.submit_date not in self.available_dates:
@@ -230,15 +219,13 @@ class ScrapeSession:
                         "list": [],
                     }
 
-                time.sleep(1)
-                submit_query(plaka_kodu, self.submit_date, self.token)
-                time.sleep(1)
-                rows = fetch_pharmacy_rows()
+                submit_query(self.http, plaka_kodu, self.submit_date, self.token)
+                rows = fetch_pharmacy_rows(self.http)
                 pharmacies = parse_pharmacy_rows(rows)
 
                 if not pharmacies:
                     if attempt < max_retries - 1:
-                        time.sleep(5 * (attempt + 1))
+                        time.sleep(RETRY_BACKOFF * (attempt + 1))
                         continue
 
                     return {
@@ -248,7 +235,7 @@ class ScrapeSession:
                         "list": [],
                     }
 
-                pharmacies = fill_missing_coordinates(pharmacies)
+                pharmacies = fill_missing_coordinates(self.http, pharmacies)
 
                 return {
                     "success": True,
@@ -257,10 +244,9 @@ class ScrapeSession:
                     "list": pharmacies,
                 }
 
-            except Exception:
-                self.refresh_context()
+            except requests.RequestException:
                 if attempt < max_retries - 1:
-                    time.sleep(5 * (attempt + 1))
+                    time.sleep(RETRY_BACKOFF * (attempt + 1))
                     continue
 
                 return {
@@ -278,7 +264,7 @@ class ScrapeSession:
         }
 
 
-def scrape_pharmacies(plaka_kodu: str, tarih: str, scrape_session=None, max_retries=3) -> dict:
+def scrape_pharmacies(plaka_kodu: str, tarih: str, scrape_session=None) -> dict:
     owns_session = scrape_session is None
 
     if owns_session:
@@ -286,7 +272,7 @@ def scrape_pharmacies(plaka_kodu: str, tarih: str, scrape_session=None, max_retr
         if not scrape_session.start():
             return {"success": False, "tooktime": 0, "count": 0, "list": []}
 
-    return scrape_session.scrape_city(plaka_kodu, max_retries=max_retries)
+    return scrape_session.scrape_city(plaka_kodu)
 
 
 def parser(plaka_kodu: str, tarih: str, scrape_session=None) -> dict:
@@ -295,7 +281,9 @@ def parser(plaka_kodu: str, tarih: str, scrape_session=None) -> dict:
             return {"success": False, "tooktime": 0, "count": 0, "list": []}
 
         return scrape_pharmacies(plaka_kodu, tarih, scrape_session=scrape_session)
-    except (IndexError, KeyboardInterrupt, Exception):
+    except (IndexError, KeyboardInterrupt):
+        raise
+    except Exception:
         return {"success": False, "tooktime": 0, "count": 0, "list": []}
 
 

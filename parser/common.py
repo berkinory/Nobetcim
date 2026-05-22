@@ -11,6 +11,13 @@ load_dotenv()
 REDIS_TTL = 604800  # 7 days
 TOTAL_CITIES = 81
 
+CITY_WORKERS = 3
+MAX_RETRIES = 5
+RETRY_BACKOFF = 1
+COORD_DELAY = 0
+COORD_MAX_RETRIES = 3
+REQUEST_TIMEOUT = 10
+
 
 def get_redis_client():
     try:
