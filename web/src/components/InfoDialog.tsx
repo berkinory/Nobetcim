@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { useState } from 'react';
 import Image from 'next/image';
+import { MAP_CONFIG } from '@/lib/map-config';
 
 export default function InfoDialog() {
     const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -58,7 +59,6 @@ export default function InfoDialog() {
                                 <p>
                                     merhaba ben{' '}
                                     <span className="font-medium">miraç</span>,
-                                    20 yasinda bir üniversite ogrencisiyim.
                                 </p>
                                 <p className="mb-3">
                                     bu sitenin kodları tamamen{' '}
@@ -77,8 +77,14 @@ export default function InfoDialog() {
                             <ul className="space-y-1 text-sm text-muted-foreground">
                                 <li>• Konum erişimine izin verin.</li>
                                 <li>
-                                    • Size en yakın 50 nöbetçi eczaneyi
-                                    görüntüleyin.
+                                    • Size en yakın{' '}
+                                    {MAP_CONFIG.LOCATION.MAX_CLOSEST_PHARMACIES}{' '}
+                                    nöbetçi eczaneyi görüntüleyin.
+                                </li>
+                                <li>
+                                    • Konumunuz yaklaşık{' '}
+                                    {MAP_CONFIG.LOCATION.CHANGE_THRESHOLD_METERS}{' '}
+                                    metreden fazla değişince güncellenir.
                                 </li>
                                 <li>
                                     • Eczanelerin üzerine tıklayarak detayları
@@ -95,7 +101,7 @@ export default function InfoDialog() {
                                     className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                                 >
                                     <FaSquareXTwitter size={20} />
-                                    Twitter
+                                    X
                                 </a>
                                 <a
                                     href="https://github.com/berkinory/nobetcim"
