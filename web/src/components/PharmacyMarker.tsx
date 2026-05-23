@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { Marker } from 'react-map-gl/maplibre';
 import { Moon } from 'lucide-react';
 
@@ -19,7 +20,7 @@ interface PharmacyMarkerProps {
     onClick?: (pharmacy: PharmacyData, distance?: number) => void;
 }
 
-export default function PharmacyMarker({
+function PharmacyMarker({
     pharmacy,
     distance,
     onClick,
@@ -41,3 +42,5 @@ export default function PharmacyMarker({
         </Marker>
     );
 }
+
+export default memo(PharmacyMarker);

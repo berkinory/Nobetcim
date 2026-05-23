@@ -7,18 +7,11 @@ import {
     useCallback,
     useMemo,
 } from 'react';
-import {
-    Map as MapGL,
-    Layer,
-    Source,
-    type MapLayerMouseEvent,
-    type MapRef,
-    type ViewStateChangeEvent,
-} from 'react-map-gl/maplibre';
-import type { FeatureCollection, Point } from 'geojson';
+import { Map as MapGL, type MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { toast } from 'sonner';
 
+import PharmacyMarker from '@/components/PharmacyMarker';
 import UserLocationMarker from '@/components/UserLocationMarker';
 import PharmacyDialog from '@/components/PharmacyDialog';
 import {
@@ -30,8 +23,6 @@ import {
     type PharmacyWithDistance,
 } from '@/lib/map-config';
 
-const PHARMACY_LAYER_ID = 'pharmacy-points';
-
 function getMapStyleUrl(styleId: string): string {
     const baseUrl = 'https://api.maptiler.com/maps/';
     const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
@@ -40,16 +31,8 @@ function getMapStyleUrl(styleId: string): string {
     return `${baseUrl}${styleMap}/style.json?key=${apiKey}`;
 }
 
-function loadPharmacyMarker(map: maplibregl.Map) {
-    if (map.hasImage('pharmacy-marker')) return;
-
-    const image = new Image(32, 32);
-    image.onload = () => {
-        if (!map.hasImage('pharmacy-marker')) {
-            map.addImage('pharmacy-marker', image, { pixelRatio: 2 });
-        }
-    };
-    image.src = '/pharmacy-marker.svg';
+function pharmacyMarkerKey(pharmacy: PharmacyData): string {
+    return `${pharmacy.lat}-${pharmacy.long}-${pharmacy.name}-${pharmacy.address}`;
 }
 
 export function isLocationInTurkey(
@@ -126,17 +109,6 @@ interface MapProps {
 
 const MapComponent = forwardRef<MapHandle, MapProps>(
     ({ mapStyle, pharmacies, onLocationFound, initialLocation }, ref) => {
-        const [viewState, setViewState] = useState<{
-            longitude: number;
-            latitude: number;
-            zoom: number;
-        }>({
-            longitude: initialLocation?.longitude ?? 0,
-            latitude: initialLocation?.latitude ?? 0,
-            zoom: initialLocation
-                ? MAP_CONFIG.ZOOM.INITIAL
-                : MAP_CONFIG.ZOOM.DEFAULT,
-        });
         const [userLocation, setUserLocation] = useState<{
             latitude: number;
             longitude: number;
@@ -166,13 +138,22 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
         const userLocationRef = useRef(userLocation);
         const boundsAnchorRef = useRef(boundsAnchor);
         const hasShownDistanceWarningRef = useRef(false);
-        const closestPharmaciesRef = useRef<PharmacyWithDistance[]>([]);
 
         userLocationRef.current = userLocation;
         boundsAnchorRef.current = boundsAnchor;
-        closestPharmaciesRef.current = closestPharmacies;
 
         const mapStyleUrl = useMemo(() => getMapStyleUrl(mapStyle), [mapStyle]);
+
+        const initialViewState = useMemo(
+            () => ({
+                longitude: initialLocation?.longitude ?? 0,
+                latitude: initialLocation?.latitude ?? 0,
+                zoom: initialLocation
+                    ? MAP_CONFIG.ZOOM.INITIAL
+                    : MAP_CONFIG.ZOOM.DEFAULT,
+            }),
+            [initialLocation]
+        );
 
         const maxBounds = useMemo(() => {
             if (!boundsAnchor) return undefined;
@@ -183,23 +164,6 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                 MAP_CONFIG.LOCATION.BUFFER_KM
             );
         }, [boundsAnchor]);
-
-        const pharmacyGeoJson = useMemo<
-            FeatureCollection<Point, { index: number }>
-        >(() => {
-            return {
-                type: 'FeatureCollection',
-                features: closestPharmacies.map(({ pharmacy }, index) => ({
-                    type: 'Feature',
-                    id: index,
-                    geometry: {
-                        type: 'Point',
-                        coordinates: [pharmacy.long, pharmacy.lat],
-                    },
-                    properties: { index },
-                })),
-            };
-        }, [closestPharmacies]);
 
         const updateClosestPharmacies = useCallback(
             (
@@ -222,10 +186,10 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                         current.length === nextClosest.length &&
                         current.every(
                             (item, index) =>
-                                item.pharmacy.lat ===
-                                    nextClosest[index]?.pharmacy.lat &&
-                                item.pharmacy.long ===
-                                    nextClosest[index]?.pharmacy.long &&
+                                pharmacyMarkerKey(item.pharmacy) ===
+                                    pharmacyMarkerKey(
+                                        nextClosest[index].pharmacy
+                                    ) &&
                                 Math.abs(
                                     item.distance - nextClosest[index].distance
                                 ) < 0.01
@@ -361,16 +325,7 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
             );
         }, [handleLocationUpdate]);
 
-        const handleMapMove = useCallback((evt: ViewStateChangeEvent) => {
-            setViewState(evt.viewState);
-        }, []);
-
         const handleMapLoad = useCallback(() => {
-            const map = mapRef.current?.getMap();
-            if (map) {
-                loadPharmacyMarker(map);
-            }
-
             if (
                 initialLocation &&
                 mapRef.current &&
@@ -390,25 +345,6 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                 }, MAP_CONFIG.ANIMATION.INITIAL_ZOOM_DELAY);
             }
         }, [initialLocation]);
-
-        const handleMapClick = useCallback((event: MapLayerMouseEvent) => {
-            const feature = event.features?.[0];
-            if (!feature || feature.layer.id !== PHARMACY_LAYER_ID) {
-                return;
-            }
-
-            const index = feature.properties?.index;
-            if (typeof index !== 'number') {
-                return;
-            }
-
-            const selected = closestPharmaciesRef.current[index];
-            if (!selected) {
-                return;
-            }
-
-            setSelectedPharmacy(selected);
-        }, []);
 
         const zoomIn = useCallback(() => {
             mapRef.current?.zoomIn({
@@ -436,9 +372,29 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
             }
         }, [userLocation]);
 
+        const handlePharmacyClick = useCallback(
+            (pharmacy: PharmacyData, distance?: number) => {
+                setSelectedPharmacy({ pharmacy, distance });
+            },
+            []
+        );
+
         const handleCloseDialog = useCallback(() => {
             setSelectedPharmacy(null);
         }, []);
+
+        const pharmacyMarkers = useMemo(
+            () =>
+                closestPharmacies.map(({ pharmacy, distance }) => (
+                    <PharmacyMarker
+                        key={pharmacyMarkerKey(pharmacy)}
+                        pharmacy={pharmacy}
+                        distance={distance}
+                        onClick={handlePharmacyClick}
+                    />
+                )),
+            [closestPharmacies, handlePharmacyClick]
+        );
 
         const imperativeHandle = useMemo(
             () => ({
@@ -492,42 +448,23 @@ const MapComponent = forwardRef<MapHandle, MapProps>(
                     className="w-full h-full"
                 >
                     <MapGL
-                        {...viewState}
+                        initialViewState={initialViewState}
                         style={{ width: '100%', height: '100%' }}
                         mapStyle={mapStyleUrl}
                         minZoom={MAP_CONFIG.ZOOM.MIN}
                         maxZoom={MAP_CONFIG.ZOOM.MAX}
                         maxBounds={maxBounds}
-                        onMove={handleMapMove}
                         onLoad={handleMapLoad}
-                        onClick={handleMapClick}
-                        interactiveLayerIds={[PHARMACY_LAYER_ID]}
-                        cursor="grab"
                         ref={mapRef}
                         attributionControl={false}
                         logoPosition="bottom-left"
                     >
-                        <Source
-                            id="pharmacies"
-                            type="geojson"
-                            data={pharmacyGeoJson}
-                        >
-                            <Layer
-                                id={PHARMACY_LAYER_ID}
-                                type="symbol"
-                                layout={{
-                                    'icon-image': 'pharmacy-marker',
-                                    'icon-size': 1,
-                                    'icon-allow-overlap': true,
-                                    'icon-ignore-placement': true,
-                                }}
-                            />
-                        </Source>
-
                         <UserLocationMarker
                             longitude={userLocation.longitude}
                             latitude={userLocation.latitude}
                         />
+
+                        {pharmacyMarkers}
                     </MapGL>
                 </div>
 
