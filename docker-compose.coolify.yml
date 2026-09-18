@@ -1,0 +1,82 @@
+# Coolify production deployment; data volumes must already exist.
+services:
+  postgres:
+    image: postgres@sha256:16bc17c64a573ef34162af9298258d1aec548232985b33ed7b1eac33ba35c229
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nobetcim
+      POSTGRES_PASSWORD: nobetcim
+      POSTGRES_DB: nobetcim
+    volumes:
+    - postgres_data:/var/lib/postgresql/data
+    networks:
+      private:
+        aliases:
+        - postgres
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pg_isready -U nobetcim -d nobetcim
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    container_name: coolify-nobetcim-postgres
+  web:
+    build:
+      context: ./web
+      args:
+        NODE_ENV: production
+        NEXT_TELEMETRY_DISABLED: '1'
+        NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-https://nobetcim.app}
+        NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_URL: ${NEXT_PUBLIC_URL:-https://nobetcim.app}
+      NEXT_PUBLIC_MAPTILER_API_KEY: ${NEXT_PUBLIC_MAPTILER_API_KEY:-}
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: '1'
+      PORT: '1001'
+      HOSTNAME: 0.0.0.0
+    expose:
+    - '1001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bun -e "fetch('http://127.0.0.1:1001').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+    networks:
+      private:
+        aliases:
+        - web
+      coolify:
+        aliases:
+        - nobetcim-coolify-web
+    container_name: coolify-nobetcim-web
+  pharmacy-scraper:
+    build:
+      context: ./parser
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      private:
+        aliases:
+        - pharmacy-scraper
+    container_name: coolify-nobetcim-pharmacy-scraper
+networks:
+  private: {}
+  coolify:
+    external: true
+volumes:
+  postgres_data:
+    external: true
+    name: nobetcim-production-hxazn1_postgres_data
