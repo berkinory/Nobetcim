@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import threading
-import time
+import signal
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from city_mapping import get_city_name
@@ -13,6 +13,7 @@ from config import (
     SCHEDULER_INTERVAL_SECONDS,
     TOTAL_CITY_COUNT,
 )
+from db import dispose_pool
 from dates import get_active_scrape_dates, get_turkey_now
 from scraper import ScrapeResult, ScrapeSession
 from storage import (
@@ -24,7 +25,15 @@ from storage import (
 )
 
 
-def scrape_city_job(date_str: str, plate_code: str) -> tuple[str, ScrapeResult]:
+stop_requested = threading.Event()
+
+def request_shutdown(signum, frame) -> None:
+    stop_requested.set()
+
+
+def scrape_city_job(date_str: str, plate_code: str) -> tuple[str, ScrapeResult | None]:
+    if stop_requested.is_set():
+        return plate_code, None
     session = ScrapeSession(date_str)
     if not session.start():
         return plate_code, {"success": False, "tooktime": 0, "count": 0, "list": []}
@@ -52,6 +61,8 @@ def pending_plate_codes(completed_cities: set[str]) -> list[str]:
 
 
 def process_single_date(date_str: str) -> None:
+    if stop_requested.is_set():
+        return
     probe = ScrapeSession(date_str)
     if not probe.start():
         available = ", ".join(probe.available_dates) or "none"
@@ -94,6 +105,9 @@ def process_single_date(date_str: str) -> None:
                 failed += 1
                 continue
 
+            if result is None:
+                continue
+
             print(
                 f"Processing {plate_number:2d}/{TOTAL_CITY_COUNT}: "
                 f"{city_name} ({plate_code})",
@@ -120,6 +134,8 @@ def process_active_dates() -> None:
     get_pool()
 
     for date_str in get_active_scrape_dates():
+        if stop_requested.is_set():
+            break
         print(f"\nChecking date: {date_str}")
 
         if is_scrape_complete(date_str):
@@ -142,28 +158,33 @@ def process_active_dates() -> None:
 
 
 def run_scheduler() -> None:
-    while True:
+    while not stop_requested.is_set():
         try:
             now = get_turkey_now()
             print(f"\n🕐 Starting collection at: {now.strftime('%d/%m/%Y %H:%M:%S')} (UTC+3)")
             process_active_dates()
-            time.sleep(SCHEDULER_INTERVAL_SECONDS)
+            stop_requested.wait(SCHEDULER_INTERVAL_SECONDS)
         except KeyboardInterrupt:
             print("\n\n🛑 Scheduler stopped by user.")
             break
         except Exception as error:
             print(f"\n❌ Error in scheduler: {error}")
             print("⏰ Retrying in 10 minutes...")
-            time.sleep(SCHEDULER_ERROR_RETRY_SECONDS)
+            stop_requested.wait(SCHEDULER_ERROR_RETRY_SECONDS)
 
 
 def main() -> None:
+    signal.signal(signal.SIGTERM, request_shutdown)
+    signal.signal(signal.SIGINT, request_shutdown)
     try:
         run_scheduler()
     except KeyboardInterrupt:
         print("\n\nProcess interrupted by user.")
     except Exception as error:
         print(f"\nUnexpected error: {error}")
+
+    finally:
+        dispose_pool()
 
 
 if __name__ == "__main__":

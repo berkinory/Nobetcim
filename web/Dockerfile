@@ -3,7 +3,7 @@ FROM oven/bun:1.3.3-slim AS base
 FROM base AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,id=nobetcim-bun,target=/root/.bun/install/cache,sharing=locked bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
@@ -17,7 +17,7 @@ ENV NEXT_PUBLIC_URL=$NEXT_PUBLIC_URL
 ENV NEXT_PUBLIC_MAPTILER_API_KEY=$NEXT_PUBLIC_MAPTILER_API_KEY
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN bun run build
+RUN --mount=type=cache,id=nobetcim-next,target=/app/.next/cache,sharing=locked bun run build
 
 FROM base AS runner
 WORKDIR /app

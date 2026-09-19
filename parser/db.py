@@ -47,3 +47,8 @@ def check_db_connection() -> bool:
         return True
     except Exception:
         return False
+
+
+def dispose_pool() -> None:
+    if _engine is not None:
+        _engine.dispose()
