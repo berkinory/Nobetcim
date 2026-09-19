@@ -1,5 +1,5 @@
-import type { NextConfig } from 'next';
 import bundleAnalyzer from '@next/bundle-analyzer';
+import type { NextConfig } from 'next';
 
 const withBundleAnalyzer = bundleAnalyzer({
     enabled: process.env.ANALYZE === 'true',
@@ -7,10 +7,10 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://rybbit-api.mirac.dev;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://analytics-c.mirac.dev;
   style-src 'self' 'unsafe-inline';
   font-src 'self';
-  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://rybbit-api.mirac.dev;
+  connect-src 'self' https://demotiles.maplibre.org https://api.maptiler.com https://analytics-c.mirac.dev;
   media-src 'self';
   worker-src 'self' blob:;
   img-src 'self' data: https://demotiles.maplibre.org https://api.maptiler.com;

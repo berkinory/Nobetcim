@@ -1,8 +1,8 @@
 'use client';
 
-import '@/lib/openpanel';
-import type { ReactNode } from 'react';
+import '@/lib/openanalytics';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
 
 const queryClient = new QueryClient({
     defaultOptions: {

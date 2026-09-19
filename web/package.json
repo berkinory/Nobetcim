@@ -15,7 +15,6 @@
     },
     "dependencies": {
         "@next/bundle-analyzer": "15.5.18",
-        "@openpanel/web": "^1.3.0",
         "@radix-ui/react-dialog": "^1.1.14",
         "@radix-ui/react-slot": "^1.2.3",
         "@tanstack/react-query": "^5.80.7",
