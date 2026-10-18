@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 const commit = 'a07da7020810d3a975524daad2a544c9205ea65e';
 const outputs = process.argv.slice(2);
-if (!outputs.length) throw new Error('Pass the public/openanalytics-v0.8.0.js output paths.');
+if (!outputs.length) throw new Error('Pass the public/js/oa-v0.8.0.js output paths.');
 const temp = await mkdtemp(join(tmpdir(), 'openanalytics-tracker-'));
 try {
   const response = await fetch(`https://github.com/OpenLabs-so/openanalytics/archive/${commit}.tar.gz`);

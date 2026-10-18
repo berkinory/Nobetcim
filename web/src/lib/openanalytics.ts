@@ -3,10 +3,10 @@ const SCRIPT_ID = 'openanalytics-script';
 if (typeof document !== 'undefined' && !document.getElementById(SCRIPT_ID)) {
     const script = document.createElement('script');
     script.id = SCRIPT_ID;
-    script.src = '/openanalytics-v0.8.0.js';
+    script.src = '/js/oa-v0.8.0.js';
     script.defer = true;
     script.dataset.key = 'oa_pk_LmuCS6DQNV4P6Mm1x4MlWOlQchBHxmvW';
-    script.dataset.collector = 'https://analytics-c.mirac.dev';
+    script.dataset.collector = 'https://edge.mirac.dev';
     script.dataset.domain =
         process.env.NEXT_PUBLIC_URL || 'https://nobetcim.app';
     script.dataset.redactQueryKeys =
