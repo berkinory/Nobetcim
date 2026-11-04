@@ -1,0 +1,16 @@
+{
+    "$schema": "./node_modules/oxfmt/configuration_schema.json",
+    "printWidth": 80,
+    "tabWidth": 4,
+    "singleQuote": true,
+    "jsxSingleQuote": false,
+    "trailingComma": "es5",
+    "semi": true,
+    "arrowParens": "always",
+    "ignorePatterns": [
+        "**/routeTree.gen.ts",
+        "db/migrations/**",
+        "apps/scraper/**",
+        "bun.lock"
+    ]
+}

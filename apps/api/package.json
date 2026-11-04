@@ -1,0 +1,19 @@
+{
+    "name": "@nobetcim/api",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "bun --watch src/index.ts",
+        "start": "bun src/index.ts",
+        "typecheck": "tsc --noEmit",
+        "db:migrate": "bun src/db/migrate-cli.ts"
+    },
+    "dependencies": {
+        "@nobetcim/contract": "workspace:*",
+        "drizzle-orm": "0.45.4",
+        "hono": "4.13.16"
+    },
+    "devDependencies": {
+        "@types/bun": "1.4.4"
+    }
+}

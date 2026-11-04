@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.turbo
+**/.venv
+**/__pycache__
+**/.env
+**/.env.*
+!**/.env.example
+.git
+apps/web/bench
+*.md

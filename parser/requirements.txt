@@ -1,5 +1,0 @@
-requests
-beautifulsoup4
-lxml
-sqlalchemy>=2.0
-psycopg[binary]

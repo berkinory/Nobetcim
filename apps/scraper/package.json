@@ -1,0 +1,11 @@
+{
+    "name": "@nobetcim/scraper",
+    "private": true,
+    "scripts": {
+        "dev": "uv run python main.py",
+        "lint": "uv run ruff check .",
+        "format": "uv run ruff format . && uv run ruff check --fix .",
+        "format:check": "uv run ruff format --check .",
+        "test": "uv run python -m unittest -v"
+    }
+}
