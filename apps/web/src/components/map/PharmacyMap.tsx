@@ -19,7 +19,7 @@ import type { Fix } from '@/lib/use-geolocation';
 
 import { mapStyleUrl, transformRequest, type MapStyleId } from './map-style';
 import {
-    DOT_LAYER,
+    BASE_LAYER,
     INTERACTIVE_LAYERS,
     installPharmacyLayers,
     setPharmacyData,
@@ -155,7 +155,7 @@ export function PharmacyMap({
         map.on('style.load', () => {
             const { data: current, selectedId: selected } = latest.current;
             installPharmacyLayers(map, current, selected);
-            installAccuracyLayer(map, latest.current.userLocation, DOT_LAYER);
+            installAccuracyLayer(map, latest.current.userLocation, BASE_LAYER);
         });
 
         // Camera events carry `originalEvent` only when a person caused them.
@@ -215,16 +215,25 @@ export function PharmacyMap({
             flyTo: ({ latitude, longitude }, zoom) => {
                 const map = mapRef.current;
                 if (!map) return;
+                // On phones the bottom sheet covers the lower third; aim the
+                // camera so the target lands in the visible part.
+                const narrow = map.getContainer().clientWidth < 768;
                 map.flyTo({
                     center: [longitude, latitude],
                     zoom: Math.max(map.getZoom(), zoom ?? DETAIL_ZOOM),
+                    offset: [0, narrow ? -130 : 0],
                     duration: 1200,
+                    curve: 1.3,
                     essential: true,
                 });
             },
             panTo: ({ latitude, longitude }) => {
-                mapRef.current?.easeTo({
+                const map = mapRef.current;
+                if (!map) return;
+                const narrow = map.getContainer().clientWidth < 768;
+                map.easeTo({
                     center: [longitude, latitude],
+                    offset: [0, narrow ? -130 : 0],
                     duration: 600,
                 });
             },

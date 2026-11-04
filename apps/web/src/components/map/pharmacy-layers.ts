@@ -1,6 +1,5 @@
 import type { FeatureCollection, Point } from 'geojson';
 import type {
-    ExpressionSpecification,
     FilterSpecification,
     GeoJSONSource,
     Map as MapLibreMap,
@@ -9,10 +8,29 @@ import type {
 import type { MappedPharmacy } from '@/lib/geo';
 
 export const PHARMACY_SOURCE = 'pharmacies';
-export const DOT_LAYER = 'pharmacy-dot';
-const ICON_LAYER = 'pharmacy-icon';
 const SELECTED_LAYER = 'pharmacy-selected';
-export const INTERACTIVE_LAYERS = [DOT_LAYER, ICON_LAYER, SELECTED_LAYER];
+const HALO_LAYER = 'pharmacy-halo';
+const RIPPLE_LAYER = 'pharmacy-ripple';
+
+// Open and not-yet-started shifts get separate layers with constant opacity:
+// MapLibre cannot animate data-driven paint values, and the reveal fade below
+// needs plain numbers.
+const GROUPS = [
+    { key: 'open', upcoming: false, opacity: 1 },
+    { key: 'upcoming', upcoming: true, opacity: 0.45 },
+] as const;
+const dotLayer = (key: string) => `pharmacy-dot-${key}`;
+const iconLayer = (key: string) => `pharmacy-icon-${key}`;
+
+/** The lowest pharmacy layer; other overlays are inserted below it. */
+export const BASE_LAYER = dotLayer('open');
+export const INTERACTIVE_LAYERS = [
+    ...GROUPS.flatMap((g) => [dotLayer(g.key), iconLayer(g.key)]),
+    SELECTED_LAYER,
+];
+
+const REVEAL_MS = 600;
+const RIPPLE_MS = 750;
 
 // Below this zoom pharmacies are plain dots: thousands of them stay legible
 // and cost the GPU next to nothing.
@@ -84,14 +102,6 @@ export function toFeatureCollection(
     };
 }
 
-const UPCOMING_OPACITY = 0.45;
-const fadeUpcoming: ExpressionSpecification = [
-    'case',
-    ['get', 'upcoming'],
-    UPCOMING_OPACITY,
-    1,
-];
-
 /** Adds the source, images and layers. Safe to call after every style load. */
 export function installPharmacyLayers(
     map: MapLibreMap,
@@ -115,64 +125,129 @@ export function installPharmacyLayers(
         map.addSource(PHARMACY_SOURCE, { type: 'geojson', data });
     }
 
+    const reveal = { duration: REVEAL_MS, delay: 0 };
+    for (const group of GROUPS) {
+        const filter: FilterSpecification = [
+            '==',
+            ['get', 'upcoming'],
+            group.upcoming,
+        ];
+        // Pins start transparent and fade to `group.opacity` once the layer
+        // exists (see revealPharmacies), so they settle in instead of popping.
+        map.addLayer({
+            id: dotLayer(group.key),
+            type: 'circle',
+            source: PHARMACY_SOURCE,
+            maxzoom: ICON_MIN_ZOOM,
+            filter,
+            paint: {
+                'circle-color': RED_400,
+                'circle-radius': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    5,
+                    3,
+                    8,
+                    4.5,
+                    ICON_MIN_ZOOM,
+                    6.5,
+                ],
+                'circle-stroke-color': '#ffffff',
+                'circle-stroke-width': 1,
+                'circle-opacity': 0,
+                'circle-stroke-opacity': 0,
+                'circle-opacity-transition': reveal,
+                'circle-stroke-opacity-transition': reveal,
+            },
+        });
+        map.addLayer({
+            id: iconLayer(group.key),
+            type: 'symbol',
+            source: PHARMACY_SOURCE,
+            minzoom: ICON_MIN_ZOOM,
+            filter,
+            layout: {
+                'icon-image': 'pharmacy-pin',
+                'icon-size': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    ICON_MIN_ZOOM,
+                    0.7,
+                    14,
+                    1,
+                ],
+                // Every pharmacy must stay visible, and skipping collision
+                // detection is also what keeps symbol placement cheap.
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+            },
+            paint: { 'icon-opacity': 0, 'icon-opacity-transition': reveal },
+        });
+    }
+
+    const selected = selectedFilter(selectedId);
     map.addLayer({
-        id: DOT_LAYER,
+        id: HALO_LAYER,
         type: 'circle',
         source: PHARMACY_SOURCE,
-        maxzoom: ICON_MIN_ZOOM,
+        filter: selected,
         paint: {
-            'circle-color': RED_400,
-            'circle-radius': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                5,
-                3,
-                8,
-                4.5,
-                ICON_MIN_ZOOM,
-                6.5,
-            ],
-            'circle-stroke-color': '#ffffff',
-            'circle-stroke-width': 1,
-            'circle-opacity': fadeUpcoming,
-            'circle-stroke-opacity': fadeUpcoming,
+            'circle-color': RED_500,
+            'circle-radius': 26,
+            'circle-opacity': 0.18,
+            'circle-blur': 0.4,
         },
     });
     map.addLayer({
-        id: ICON_LAYER,
-        type: 'symbol',
+        id: RIPPLE_LAYER,
+        type: 'circle',
         source: PHARMACY_SOURCE,
-        minzoom: ICON_MIN_ZOOM,
-        layout: {
-            'icon-image': 'pharmacy-pin',
-            'icon-size': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                ICON_MIN_ZOOM,
-                0.7,
-                14,
-                1,
-            ],
-            // Every pharmacy must stay visible, and skipping collision
-            // detection is also what keeps symbol placement cheap.
-            'icon-allow-overlap': true,
-            'icon-ignore-placement': true,
+        filter: selected,
+        paint: {
+            'circle-color': 'rgba(0, 0, 0, 0)',
+            'circle-stroke-color': RED_500,
+            'circle-stroke-width': 2,
+            'circle-radius': 20,
+            'circle-stroke-opacity': 0,
         },
-        paint: { 'icon-opacity': fadeUpcoming },
     });
     map.addLayer({
         id: SELECTED_LAYER,
         type: 'symbol',
         source: PHARMACY_SOURCE,
-        filter: selectedFilter(selectedId),
+        filter: selected,
         layout: {
             'icon-image': 'pharmacy-pin-selected',
             'icon-allow-overlap': true,
             'icon-ignore-placement': true,
         },
     });
+
+    // Let the first frame render the transparent pins, then fade them in.
+    requestAnimationFrame(() => revealPharmacies(map));
+}
+
+function revealPharmacies(map: MapLibreMap) {
+    for (const group of GROUPS) {
+        if (!map.getLayer(dotLayer(group.key))) continue;
+        map.setPaintProperty(
+            dotLayer(group.key),
+            'circle-opacity',
+            group.opacity
+        );
+        map.setPaintProperty(
+            dotLayer(group.key),
+            'circle-stroke-opacity',
+            group.opacity
+        );
+        map.setPaintProperty(
+            iconLayer(group.key),
+            'icon-opacity',
+            group.opacity
+        );
+    }
 }
 
 function selectedFilter(selectedId: number | null): FilterSpecification {
@@ -186,11 +261,41 @@ export function setPharmacyData(
     map.getSource<GeoJSONSource>(PHARMACY_SOURCE)?.setData(data);
 }
 
+/**
+ * Moves the selection layers to the pharmacy and plays one ripple ring.
+ * One-shot paint transitions, not a render loop: the map only repaints while
+ * the ring is moving.
+ */
 export function setSelectedPharmacy(
     map: MapLibreMap,
     selectedId: number | null
 ) {
-    if (map.getLayer(SELECTED_LAYER)) {
-        map.setFilter(SELECTED_LAYER, selectedFilter(selectedId));
+    if (!map.getLayer(SELECTED_LAYER)) return;
+    const filter = selectedFilter(selectedId);
+    for (const layer of [HALO_LAYER, RIPPLE_LAYER, SELECTED_LAYER]) {
+        map.setFilter(layer, filter);
     }
+    if (selectedId === null) return;
+
+    const instant = { duration: 0, delay: 0 };
+    map.setPaintProperty(RIPPLE_LAYER, 'circle-radius-transition', instant);
+    map.setPaintProperty(
+        RIPPLE_LAYER,
+        'circle-stroke-opacity-transition',
+        instant
+    );
+    map.setPaintProperty(RIPPLE_LAYER, 'circle-radius', 18);
+    map.setPaintProperty(RIPPLE_LAYER, 'circle-stroke-opacity', 0.8);
+    requestAnimationFrame(() => {
+        if (!map.getLayer(RIPPLE_LAYER)) return;
+        const ripple = { duration: RIPPLE_MS, delay: 0 };
+        map.setPaintProperty(RIPPLE_LAYER, 'circle-radius-transition', ripple);
+        map.setPaintProperty(
+            RIPPLE_LAYER,
+            'circle-stroke-opacity-transition',
+            ripple
+        );
+        map.setPaintProperty(RIPPLE_LAYER, 'circle-radius', 44);
+        map.setPaintProperty(RIPPLE_LAYER, 'circle-stroke-opacity', 0);
+    });
 }

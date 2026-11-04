@@ -1,10 +1,14 @@
 import type { RequestTransformFunction } from 'maplibre-gl';
 
-export type MapStyleId = 'street' | 'satellite';
+import type { ColorScheme } from '@/lib/use-color-scheme';
 
+export type MapStyleId = ColorScheme;
+
+// The custom "Pharmacy" style is built on MapTiler Dataviz; Dataviz Dark is
+// its night counterpart with the same layer structure.
 const STYLE_PATHS: Record<MapStyleId, string> = {
-    street: '01976890-9b0b-705a-b6ef-fd4f77dd0100',
-    satellite: 'satellite',
+    light: '01976890-9b0b-705a-b6ef-fd4f77dd0100',
+    dark: 'dataviz-dark',
 };
 
 const MAPTILER_ORIGIN = 'https://api.maptiler.com';

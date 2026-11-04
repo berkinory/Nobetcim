@@ -1,13 +1,21 @@
 import {
-    ChevronDown,
     ChevronRight,
     CloudOff,
     LocateFixed,
+    Navigation2,
+    Phone,
     Search,
 } from 'lucide-react';
-import { useDeferredValue, useMemo, useState } from 'react';
+import {
+    useDeferredValue,
+    useMemo,
+    useRef,
+    useState,
+    type PointerEvent,
+} from 'react';
 
 import { Button } from '@/components/ui/button';
+import { preferredDirectionsUrl } from '@/lib/directions';
 import {
     formatDistance,
     formatDutyDate,
@@ -16,13 +24,16 @@ import {
     toTitleCaseTr,
 } from '@/lib/format';
 import type { MappedPharmacy } from '@/lib/geo';
-import { type ShiftState } from '@/lib/shift';
+import type { ShiftState } from '@/lib/shift';
 import type { GeolocationStatus } from '@/lib/use-geolocation';
 import { cn } from '@/lib/utils';
 
 const MAX_ROWS = 60;
 // Beyond this the fix is network/IP based and distances are rough.
 const LOW_ACCURACY_M = 500;
+// iOS-style sheet curve: quick start, long soft settle.
+const SHEET_EASE = 'ease-[cubic-bezier(0.32,0.72,0,1)]';
+const DRAG_THRESHOLD_PX = 24;
 
 export interface PanelRow {
     pharmacy: MappedPharmacy;
@@ -32,7 +43,7 @@ export interface PanelRow {
 
 interface NearbyPanelProps {
     date: string | null;
-    /** Already sorted: open shifts first, then by distance. */
+    /** Already sorted: nearest (and open) first. */
     rows: readonly PanelRow[];
     hasLocation: boolean;
     accuracyM: number | null;
@@ -80,11 +91,19 @@ function useFilteredRows(rows: readonly PanelRow[], query: string): PanelRow[] {
     }, [rows, query, index]);
 }
 
+function LiveDot({ className }: { className?: string }) {
+    return (
+        <span className={cn('relative flex h-2 w-2', className)}>
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+        </span>
+    );
+}
+
 function ShiftTag({ row }: { row: PanelRow }) {
     if (row.state === 'open') {
         return (
-            <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 Açık
             </span>
         );
@@ -97,6 +116,85 @@ function ShiftTag({ row }: { row: PanelRow }) {
         );
     }
     return null;
+}
+
+function NearestHighlight({
+    row,
+    onSelect,
+}: {
+    row: PanelRow;
+    onSelect: (pharmacy: MappedPharmacy) => void;
+}) {
+    const { pharmacy, distanceKm } = row;
+    return (
+        <div className="mx-3 mb-3 rounded-lg border border-border bg-background p-3 animate-in fade-in-0 zoom-in-95 duration-300">
+            <button
+                type="button"
+                onClick={() => onSelect(pharmacy)}
+                className="flex w-full items-start gap-3 text-left"
+            >
+                <span className="min-w-0 flex-1">
+                    <span className="mb-0.5 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                        En yakın nöbetçi
+                    </span>
+                    <span className="block truncate text-base font-semibold text-card-foreground">
+                        {pharmacyDisplayName(pharmacy.name)}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                        {toTitleCaseTr(pharmacy.district)}, {pharmacy.city}
+                    </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1 pt-4">
+                    {distanceKm !== null && (
+                        <span className="text-lg font-semibold tabular-nums leading-none text-card-foreground">
+                            {formatDistance(distanceKm)}
+                        </span>
+                    )}
+                    <ShiftTag row={row} />
+                </span>
+            </button>
+            <div className="mt-3 flex gap-2">
+                {pharmacy.phone && (
+                    <Button asChild size="sm" className="h-9 flex-1">
+                        <a href={`tel:${pharmacy.phone}`}>
+                            <Phone />
+                            Ara
+                        </a>
+                    </Button>
+                )}
+                <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="h-9 flex-1"
+                >
+                    <a
+                        href={preferredDirectionsUrl(
+                            pharmacy.lat,
+                            pharmacy.lng
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <Navigation2 />
+                        Yol tarifi
+                    </a>
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function Skeleton() {
+    const shine =
+        'animate-shine rounded bg-[length:400%_100%] bg-[linear-gradient(110deg,hsl(var(--muted)),45%,hsl(var(--background)),55%,hsl(var(--muted)))]';
+    return (
+        <div className="space-y-3 px-4 pb-4 pt-1" aria-hidden>
+            <div className={cn(shine, 'h-16 w-full rounded-lg')} />
+            <div className={cn(shine, 'h-4 w-2/3')} />
+            <div className={cn(shine, 'h-3 w-1/2')} />
+        </div>
+    );
 }
 
 export function NearbyPanel({
@@ -117,80 +215,97 @@ export function NearbyPanel({
     const deferredQuery = useDeferredValue(query);
     const rows = useFilteredRows(allRows, deferredQuery);
     const searching = deferredQuery.trim().length > 0;
-    // On phones the collapsed panel only peeks at the nearest pharmacy.
-    const collapsed = !expanded && !searching;
+    const open = expanded || searching;
     const askForLocation =
         !hasLocation && geolocation !== 'locating' && geolocation !== 'outside';
     const onDutyCount = allRows.filter(
         (row) => row.state !== 'upcoming'
     ).length;
+    const nearest = hasLocation ? allRows[0] : undefined;
+    // The highlight card already shows the nearest one.
+    const listRows = nearest && !searching ? rows.slice(1) : rows;
+
+    // Swipe the handle up or down to open or close; a tap toggles.
+    const dragStart = useRef<number | null>(null);
+    const onHandleDown = (event: PointerEvent) => {
+        dragStart.current = event.clientY;
+    };
+    const onHandleUp = (event: PointerEvent) => {
+        if (dragStart.current === null) return;
+        const dy = event.clientY - dragStart.current;
+        dragStart.current = null;
+        if (dy < -DRAG_THRESHOLD_PX) setExpanded(true);
+        else if (dy > DRAG_THRESHOLD_PX) setExpanded(false);
+        else setExpanded((value) => !value);
+    };
 
     return (
         <section
             aria-label="Nöbetçi eczane listesi"
-            className="pointer-events-auto flex max-h-[min(60dvh,560px)] flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
+            className="pointer-events-auto flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl animate-in fade-in-0 slide-in-from-bottom-6 duration-500 ease-out"
         >
             <button
                 type="button"
-                onClick={() => setExpanded((value) => !value)}
-                className="flex items-center justify-between gap-2 px-4 pb-2 pt-3 text-left md:pointer-events-none"
-                aria-expanded={expanded}
+                onPointerDown={onHandleDown}
+                onPointerUp={onHandleUp}
+                aria-expanded={open}
+                aria-label={open ? 'Listeyi daralt' : 'Listeyi genişlet'}
+                className="flex w-full touch-none flex-col items-stretch px-4 pb-3 pt-2 text-left md:pointer-events-none md:pt-4"
             >
-                <div className="min-w-0">
-                    <h1 className="text-sm font-semibold text-card-foreground">
-                        {hasLocation
-                            ? 'Size en yakın nöbetçiler'
-                            : 'Nöbetçi eczaneler'}
-                    </h1>
-                    <p className="text-xs text-muted-foreground">
-                        {date
-                            ? `${formatDutyDate(date)} nöbeti · ${onDutyCount} eczane şu an nöbette`
-                            : 'Yükleniyor…'}
-                    </p>
-                </div>
-                <ChevronDown
-                    className={cn(
-                        'h-4 w-4 shrink-0 text-muted-foreground transition-transform md:hidden',
-                        expanded && 'rotate-180'
-                    )}
-                />
+                <span className="mx-auto mb-2 h-1 w-9 rounded-full bg-muted-foreground/30 md:hidden" />
+                <span className="flex items-center justify-between gap-3">
+                    <span className="min-w-0">
+                        <span className="block text-base font-semibold tracking-tight text-card-foreground">
+                            {hasLocation
+                                ? 'Size en yakın nöbetçiler'
+                                : 'Nöbetçi eczaneler'}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {date ? (
+                                <>
+                                    <LiveDot />
+                                    {onDutyCount} eczane şu an nöbette ·{' '}
+                                    {formatDutyDate(date)}
+                                </>
+                            ) : (
+                                'Liste yükleniyor…'
+                            )}
+                        </span>
+                    </span>
+                    <ChevronRight
+                        className={cn(
+                            'h-4 w-4 shrink-0 -rotate-90 text-muted-foreground transition-transform duration-300 md:hidden',
+                            open && 'rotate-90'
+                        )}
+                    />
+                </span>
             </button>
 
-            <div className="px-3 pb-2">
-                <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm focus-within:ring-2 focus-within:ring-ring">
-                    <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <input
-                        type="search"
-                        value={query}
-                        onChange={(event) => setQuery(event.target.value)}
-                        onFocus={() => setExpanded(true)}
-                        placeholder="Eczane, mahalle, ilçe veya il ara"
-                        className="h-full w-full bg-transparent outline-none placeholder:text-muted-foreground"
-                        enterKeyHint="search"
-                    />
-                </label>
-            </div>
-
             {offlineSince && (
-                <p className="mx-3 mb-2 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                <p className="mx-3 mb-3 flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground animate-in fade-in-0">
                     <CloudOff className="h-3.5 w-3.5 shrink-0" />
-                    Çevrimdışısınız. Liste{' '}
-                    {clock.format(new Date(offlineSince))} itibarıyla kayıtlı
-                    haliyle gösteriliyor.
+                    Çevrimdışı. {clock.format(new Date(offlineSince))}{' '}
+                    itibarıyla kaydedilen liste gösteriliyor.
                 </p>
             )}
 
-            {accuracyM !== null && accuracyM > LOW_ACCURACY_M && !searching && (
-                <p className="mx-3 mb-2 text-xs text-muted-foreground">
-                    Konum hassasiyeti düşük (~{formatDistance(accuracyM / 1000)}
-                    ). Mesafeler yaklaşıktır.
-                </p>
-            )}
-
-            {askForLocation && !searching && (
-                <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2">
-                    <p className="text-xs text-muted-foreground">
-                        Konumunuzu paylaşın, en yakın nöbetçileri sıralayalım.
+            {error ? (
+                <div className="mx-3 mb-3 flex items-center justify-between gap-3 rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="text-muted-foreground">
+                        Eczane bilgileri yüklenemedi.
+                    </span>
+                    <Button size="sm" variant="outline" onClick={onRetry}>
+                        Tekrar dene
+                    </Button>
+                </div>
+            ) : loading ? (
+                <Skeleton />
+            ) : nearest && !searching ? (
+                <NearestHighlight row={nearest} onSelect={onSelect} />
+            ) : askForLocation && !searching ? (
+                <div className="mx-3 mb-3 flex items-center justify-between gap-3 rounded-lg border border-dashed border-border px-3 py-2.5 animate-in fade-in-0 duration-300">
+                    <p className="text-xs leading-snug text-muted-foreground">
+                        Konumunuzu paylaşın, size en yakın nöbetçiyi gösterelim.
                     </p>
                     <Button
                         size="sm"
@@ -201,71 +316,93 @@ export function NearbyPanel({
                         Konumumu bul
                     </Button>
                 </div>
-            )}
+            ) : null}
 
+            {/* Height animates through grid rows: no measuring, no layout jank. */}
             <div
                 className={cn(
-                    'overflow-y-auto overscroll-contain px-1.5 pb-1.5',
-                    collapsed && 'max-md:max-h-[62px] max-md:overflow-hidden'
+                    'grid transition-[grid-template-rows] duration-300 md:grid-rows-[1fr]',
+                    SHEET_EASE,
+                    open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
                 )}
             >
-                {error ? (
-                    <div className="flex items-center justify-between gap-3 px-2.5 py-3 text-sm">
-                        <span className="text-muted-foreground">
-                            Eczane bilgileri yüklenemedi.
-                        </span>
-                        <Button size="sm" variant="outline" onClick={onRetry}>
-                            Tekrar dene
-                        </Button>
+                <div className="min-h-0 overflow-hidden">
+                    <div className="border-t border-border px-3 pb-2 pt-3">
+                        <label className="flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm transition-shadow focus-within:ring-2 focus-within:ring-ring">
+                            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <input
+                                type="search"
+                                value={query}
+                                onChange={(event) =>
+                                    setQuery(event.target.value)
+                                }
+                                placeholder="Eczane, mahalle, ilçe veya il ara"
+                                className="h-full w-full bg-transparent outline-none placeholder:text-muted-foreground"
+                                enterKeyHint="search"
+                            />
+                        </label>
+                        {accuracyM !== null && accuracyM > LOW_ACCURACY_M && (
+                            <p className="mt-2 text-xs text-muted-foreground">
+                                Konum hassasiyeti düşük (~
+                                {formatDistance(accuracyM / 1000)}); mesafeler
+                                yaklaşıktır.
+                            </p>
+                        )}
                     </div>
-                ) : loading ? (
-                    <div className="space-y-2 px-2.5 py-2" aria-hidden>
-                        <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-                        <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
-                    </div>
-                ) : rows.length === 0 ? (
-                    <p className="px-2.5 py-3 text-sm text-muted-foreground">
-                        Sonuç bulunamadı.
-                    </p>
-                ) : (
-                    <ul>
-                        {rows.map((row) => {
-                            const { pharmacy, distanceKm } = row;
-                            return (
-                                <li key={pharmacy.id}>
-                                    <button
-                                        type="button"
-                                        onClick={() => onSelect(pharmacy)}
-                                        className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:outline-none"
+
+                    <div className="max-h-[min(46dvh,420px)] overflow-y-auto overscroll-contain px-1.5 pb-1.5">
+                        {listRows.length === 0 && !loading ? (
+                            <p className="px-2.5 py-4 text-center text-sm text-muted-foreground">
+                                Aramanızla eşleşen eczane yok.
+                            </p>
+                        ) : (
+                            <ul>
+                                {listRows.map((row, index) => (
+                                    <li
+                                        key={row.pharmacy.id}
+                                        className="animate-in fade-in-0 slide-in-from-bottom-1 fill-mode-both duration-300"
+                                        style={{
+                                            animationDelay: `${Math.min(index, 12) * 22}ms`,
+                                        }}
                                     >
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block truncate text-sm font-medium text-card-foreground">
-                                                {pharmacyDisplayName(
-                                                    pharmacy.name
-                                                )}
-                                            </span>
-                                            <span className="block truncate text-xs text-muted-foreground">
-                                                {toTitleCaseTr(
-                                                    pharmacy.district
-                                                )}
-                                                , {pharmacy.city}
-                                            </span>
-                                        </span>
-                                        <span className="flex shrink-0 flex-col items-end gap-0.5">
-                                            {distanceKm !== null && (
-                                                <span className="text-xs tabular-nums text-muted-foreground">
-                                                    {formatDistance(distanceKm)}
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                onSelect(row.pharmacy)
+                                            }
+                                            className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-[background-color,transform] duration-150 hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:outline-none active:scale-[0.98]"
+                                        >
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-sm font-medium text-card-foreground">
+                                                    {pharmacyDisplayName(
+                                                        row.pharmacy.name
+                                                    )}
                                                 </span>
-                                            )}
-                                            <ShiftTag row={row} />
-                                        </span>
-                                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                    </button>
-                                </li>
-                            );
-                        })}
-                    </ul>
-                )}
+                                                <span className="block truncate text-xs text-muted-foreground">
+                                                    {toTitleCaseTr(
+                                                        row.pharmacy.district
+                                                    )}
+                                                    , {row.pharmacy.city}
+                                                </span>
+                                            </span>
+                                            <span className="flex shrink-0 flex-col items-end gap-0.5">
+                                                {row.distanceKm !== null && (
+                                                    <span className="text-xs tabular-nums text-muted-foreground">
+                                                        {formatDistance(
+                                                            row.distanceKm
+                                                        )}
+                                                    </span>
+                                                )}
+                                                <ShiftTag row={row} />
+                                            </span>
+                                            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
             </div>
         </section>
     );

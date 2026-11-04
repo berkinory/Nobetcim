@@ -3,7 +3,8 @@
 @import '@fontsource-variable/geist';
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* Follows the OS theme; no toggle, no flash, no script. */
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @font-face {
     font-family: 'Menlo';
@@ -13,6 +14,7 @@
 
 /* Design tokens carried over unchanged from the original app. */
 :root {
+    color-scheme: light dark;
     --background: 223.8136 -172.5242% 100%;
     --foreground: 223.8136 0% 3.9388%;
     --card: 223.8136 -172.5242% 100%;
@@ -61,53 +63,55 @@
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
 }
 
-.dark {
-    --background: 223.8136 0% 3.9388%;
-    --foreground: 223.8136 0.0004% 98.0256%;
-    --card: 223.8136 0% 9.0527%;
-    --card-foreground: 223.8136 0.0004% 98.0256%;
-    --popover: 223.8136 0% 14.9382%;
-    --popover-foreground: 223.8136 0.0004% 98.0256%;
-    --primary: 223.8136 0.0001% 89.8161%;
-    --primary-foreground: 223.8136 0% 9.0527%;
-    --secondary: 223.8136 0% 14.9382%;
-    --secondary-foreground: 223.8136 0.0004% 98.0256%;
-    --muted: 223.8136 0% 14.9382%;
-    --muted-foreground: 223.8136 0% 63.0163%;
-    --accent: 223.8136 0% 25.0471%;
-    --accent-foreground: 223.8136 0.0004% 98.0256%;
-    --destructive: 358.7594 101.8439% 69.8357%;
-    --destructive-foreground: 223.8136 0.0004% 98.0256%;
-    --border: 223.8136 0% 15.5096%;
-    --input: 223.8136 0% 20.3885%;
-    --ring: 223.8136 0% 45.1519%;
-    --chart-1: 211.788 101.9718% 78.6759%;
-    --chart-2: 217.4076 91.3672% 59.5787%;
-    --chart-3: 221.4336 86.3731% 54.0624%;
-    --chart-4: 223.6587 78.718% 47.8635%;
-    --chart-5: 226.5426 70.0108% 39.9224%;
-    --sidebar: 223.8136 0% 9.0527%;
-    --sidebar-foreground: 223.8136 0.0004% 98.0256%;
-    --sidebar-primary: 225.3451 84.0953% 48.9841%;
-    --sidebar-primary-foreground: 223.8136 0.0004% 98.0256%;
-    --sidebar-accent: 223.8136 0% 14.9382%;
-    --sidebar-accent-foreground: 223.8136 0.0004% 98.0256%;
-    --sidebar-border: 223.8136 0% 15.5096%;
-    --sidebar-ring: 223.8136 0% 32.1993%;
-    --radius: 0.625rem;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm:
-        0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow:
-        0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md:
-        0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg:
-        0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-    --shadow-xl:
-        0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: 223.8136 0% 3.9388%;
+        --foreground: 223.8136 0.0004% 98.0256%;
+        --card: 223.8136 0% 9.0527%;
+        --card-foreground: 223.8136 0.0004% 98.0256%;
+        --popover: 223.8136 0% 14.9382%;
+        --popover-foreground: 223.8136 0.0004% 98.0256%;
+        --primary: 223.8136 0.0001% 89.8161%;
+        --primary-foreground: 223.8136 0% 9.0527%;
+        --secondary: 223.8136 0% 14.9382%;
+        --secondary-foreground: 223.8136 0.0004% 98.0256%;
+        --muted: 223.8136 0% 14.9382%;
+        --muted-foreground: 223.8136 0% 63.0163%;
+        --accent: 223.8136 0% 25.0471%;
+        --accent-foreground: 223.8136 0.0004% 98.0256%;
+        --destructive: 358.7594 101.8439% 69.8357%;
+        --destructive-foreground: 223.8136 0.0004% 98.0256%;
+        --border: 223.8136 0% 15.5096%;
+        --input: 223.8136 0% 20.3885%;
+        --ring: 223.8136 0% 45.1519%;
+        --chart-1: 211.788 101.9718% 78.6759%;
+        --chart-2: 217.4076 91.3672% 59.5787%;
+        --chart-3: 221.4336 86.3731% 54.0624%;
+        --chart-4: 223.6587 78.718% 47.8635%;
+        --chart-5: 226.5426 70.0108% 39.9224%;
+        --sidebar: 223.8136 0% 9.0527%;
+        --sidebar-foreground: 223.8136 0.0004% 98.0256%;
+        --sidebar-primary: 225.3451 84.0953% 48.9841%;
+        --sidebar-primary-foreground: 223.8136 0.0004% 98.0256%;
+        --sidebar-accent: 223.8136 0% 14.9382%;
+        --sidebar-accent-foreground: 223.8136 0.0004% 98.0256%;
+        --sidebar-border: 223.8136 0% 15.5096%;
+        --sidebar-ring: 223.8136 0% 32.1993%;
+        --radius: 0.625rem;
+        --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+        --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
+        --shadow-sm:
+            0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+        --shadow:
+            0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+        --shadow-md:
+            0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
+        --shadow-lg:
+            0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+        --shadow-xl:
+            0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
+        --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+    }
 }
 
 @theme inline {
@@ -184,12 +188,12 @@
 
 /* MapLibre's compact attribution, tucked under the style switcher. */
 .maplibregl-ctrl-top-left .maplibregl-ctrl-attrib {
-    margin: calc(max(0.75rem, env(safe-area-inset-top)) + 3.25rem) 0 0 0.75rem;
+    margin: calc(max(0.75rem, env(safe-area-inset-top)) + 3rem) 0 0 0.75rem;
 }
 
 @media (min-width: 768px) {
     .maplibregl-ctrl-top-left .maplibregl-ctrl-attrib {
-        margin: 4.25rem 0 0 1rem;
+        margin: 3.75rem 0 0 1rem;
     }
 }
 

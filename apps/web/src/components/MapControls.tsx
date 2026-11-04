@@ -1,20 +1,8 @@
-import {
-    Map as MapIcon,
-    Minus,
-    Navigation,
-    Plus,
-    SatelliteDish,
-} from 'lucide-react';
+import { Minus, Navigation, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-import type { MapStyleId } from '@/components/map/map-style';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-const MAP_STYLES = [
-    { id: 'street', label: 'Sokak', icon: MapIcon },
-    { id: 'satellite', label: 'Uydu', icon: SatelliteDish },
-] as const;
 
 // Solid panels on purpose: `backdrop-blur` over a WebGL canvas forces a blur
 // pass on every map frame and was a large part of the Android jank.
@@ -38,32 +26,6 @@ export function ControlGroup({
 }
 
 const ICON_BUTTON = 'h-9 w-9 md:h-10 md:w-10';
-
-export function MapStyleSelector({
-    value,
-    onChange,
-}: {
-    value: MapStyleId;
-    onChange: (style: MapStyleId) => void;
-}) {
-    return (
-        <ControlGroup className="flex gap-0.5">
-            {MAP_STYLES.map(({ id, label, icon: Icon }) => (
-                <Button
-                    key={id}
-                    variant={value === id ? 'default' : 'outline'}
-                    size="icon"
-                    onClick={() => onChange(id)}
-                    aria-label={`${label} harita görünümü`}
-                    aria-pressed={value === id}
-                    className={ICON_BUTTON}
-                >
-                    <Icon />
-                </Button>
-            ))}
-        </ControlGroup>
-    );
-}
 
 export function NavigationControls({
     onZoomIn,

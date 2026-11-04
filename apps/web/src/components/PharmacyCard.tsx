@@ -66,7 +66,7 @@ export function PharmacyCard({
         <section
             key={pharmacy.id}
             aria-label={pharmacyDisplayName(pharmacy.name)}
-            className="pointer-events-auto rounded-lg border border-border bg-card p-4 shadow-xl animate-in fade-in-0 slide-in-from-bottom-4 duration-200"
+            className="pointer-events-auto rounded-xl border border-border bg-card p-4 shadow-xl animate-in fade-in-0 slide-in-from-bottom-4 zoom-in-95 duration-300 ease-out"
         >
             <div className="mb-3 flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -102,7 +102,7 @@ export function PharmacyCard({
                     className={cn(
                         'mb-2 flex items-center gap-1.5 text-sm font-medium',
                         state === 'open'
-                            ? 'text-emerald-600'
+                            ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-muted-foreground'
                     )}
                 >

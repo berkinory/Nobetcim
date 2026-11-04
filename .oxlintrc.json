@@ -30,7 +30,8 @@
             }
         ],
         "no-await-in-loop": "off",
-        "oxc/no-map-spread": "off"
+        "oxc/no-map-spread": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off"
     },
     "ignorePatterns": ["**/routeTree.gen.ts", "**/dist/**", "apps/scraper/**"]
 }

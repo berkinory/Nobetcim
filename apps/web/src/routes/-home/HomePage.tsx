@@ -4,8 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { InfoDialog } from '@/components/InfoDialog';
-import { MapStyleSelector, NavigationControls } from '@/components/MapControls';
-import type { MapStyleId } from '@/components/map/map-style';
+import { ControlGroup, NavigationControls } from '@/components/MapControls';
 import {
     PharmacyMap,
     type PharmacyMapHandle,
@@ -23,6 +22,7 @@ import {
     type ShiftState,
 } from '@/lib/shift';
 import { GEOLOCATION_MESSAGES, useGeolocation } from '@/lib/use-geolocation';
+import { useColorScheme } from '@/lib/use-color-scheme';
 import { useOnline } from '@/lib/use-online';
 
 const route = getRouteApi('/');
@@ -34,7 +34,7 @@ export function HomePage() {
     const { eczane: selectedId = null } = route.useSearch();
     const navigate = route.useNavigate();
     const mapRef = useRef<PharmacyMapHandle>(null);
-    const [styleId, setStyleId] = useState<MapStyleId>('street');
+    const styleId = useColorScheme();
     const [initialCenter] = useState(readLastLocation);
     // Follow the user's position until they pan the map or pick a pharmacy;
     // a shared link opens on its pharmacy instead.
@@ -213,7 +213,18 @@ export function HomePage() {
             />
 
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:p-4 [&>*]:pointer-events-auto">
-                <MapStyleSelector value={styleId} onChange={setStyleId} />
+                <ControlGroup className="flex items-center gap-2 py-1.5 pl-1.5 pr-3 animate-in fade-in-0 slide-in-from-top-2 duration-500">
+                    <img
+                        src="/nobetcim.webp"
+                        alt=""
+                        width={24}
+                        height={24}
+                        className="rounded-md"
+                    />
+                    <span className="text-sm font-semibold tracking-tight">
+                        nobetcim
+                    </span>
+                </ControlGroup>
                 <div className="flex flex-col items-end gap-2">
                     <InfoDialog
                         missingCities={duties.data?.missingCities ?? []}

@@ -14,3 +14,10 @@ export function appleMapsDirectionsUrl(lat: number, lng: number): string {
     const params = new URLSearchParams({ destination: `${lat},${lng}` });
     return `https://maps.apple.com/directions?${params}`;
 }
+
+/** Apple Maps on Apple devices, Google Maps everywhere else. */
+export function preferredDirectionsUrl(lat: number, lng: number): string {
+    return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)
+        ? appleMapsDirectionsUrl(lat, lng)
+        : googleMapsDirectionsUrl(lat, lng);
+}
