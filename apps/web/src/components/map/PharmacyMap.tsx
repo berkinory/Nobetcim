@@ -17,7 +17,7 @@ import {
 import { TURKEY_BOUNDS, type LatLng, type MappedPharmacy } from '@/lib/geo';
 import type { Fix } from '@/lib/use-geolocation';
 
-import { mapStyleUrl, transformRequest, type MapStyleId } from './map-style';
+import { mapStyleUrl, transformRequest } from './map-style';
 import {
     BASE_LAYER,
     INTERACTIVE_LAYERS,
@@ -29,6 +29,7 @@ import {
 } from './pharmacy-layers';
 import {
     createUserLocationElement,
+    setUserLocationStale,
     installAccuracyLayer,
     setAccuracy,
 } from './user-location';
@@ -46,30 +47,54 @@ export interface PharmacyMapHandle {
 
 interface PharmacyMapProps {
     ref?: Ref<PharmacyMapHandle>;
-    styleId: MapStyleId;
     pharmacies: readonly MappedPharmacy[];
     /** Pharmacies whose shift has not started yet; drawn faded. */
     upcomingIds: ReadonlySet<number>;
     selectedId: number | null;
     userLocation: Fix | null;
+    /** No fresh fix for a while; the dot is drawn greyed out. */
+    userLocationStale: boolean;
     initialCenter: LatLng | null;
     onSelect: (id: number | null) => void;
     /** The user dragged or zoomed the map themselves. */
     onUserMove: () => void;
 }
 
+/**
+ * Glides the marker to `target` instead of jumping: GPS arrives in discrete
+ * steps, movement does not. Only the marker's transform changes per frame.
+ * Returns a cancel function.
+ */
+function glideMarker(marker: Marker, target: [number, number]): () => void {
+    const from = marker.getLngLat();
+    const startedAt = performance.now();
+    let frame = 0;
+    const step = (time: number) => {
+        const t = Math.min(1, (time - startedAt) / GLIDE_MS);
+        const eased = 1 - (1 - t) ** 3;
+        marker.setLngLat([
+            from.lng + (target[0] - from.lng) * eased,
+            from.lat + (target[1] - from.lat) * eased,
+        ]);
+        if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+}
+
 const DETAIL_ZOOM = 14;
+const GLIDE_MS = 700;
 // Fingers are imprecise and the low-zoom dots are tiny; search a box around
 // the tap instead of the exact pixel.
 const TAP_RADIUS_PX = 14;
 
 export function PharmacyMap({
     ref,
-    styleId,
     pharmacies,
     upcomingIds,
     selectedId,
     userLocation,
+    userLocationStale,
     initialCenter,
     onSelect,
     onUserMove,
@@ -88,6 +113,7 @@ export function PharmacyMap({
         data,
         selectedId,
         userLocation,
+        userLocationStale,
         onSelect,
         onUserMove,
     });
@@ -96,20 +122,21 @@ export function PharmacyMap({
             data,
             selectedId,
             userLocation,
+            userLocationStale,
             onSelect,
             onUserMove,
         };
     });
-    const initial = useRef({ styleId, initialCenter });
+    const initial = useRef({ initialCenter });
 
     useEffect(() => {
         const container = containerRef.current;
         if (!container) return;
-        const { styleId: firstStyle, initialCenter: center } = initial.current;
+        const { initialCenter: center } = initial.current;
 
         const map = new MapLibreMap({
             container,
-            style: mapStyleUrl(firstStyle),
+            style: mapStyleUrl(),
             transformRequest,
             ...(center
                 ? { center: [center.longitude, center.latitude], zoom: 13 }
@@ -243,15 +270,6 @@ export function PharmacyMap({
         []
     );
 
-    const lastStyle = useRef(styleId);
-    useEffect(() => {
-        const map = mapRef.current;
-        if (!map || lastStyle.current === styleId) return;
-        lastStyle.current = styleId;
-        // Custom layers are dropped with the old style; `style.load` re-adds them.
-        map.setStyle(mapStyleUrl(styleId));
-    }, [styleId]);
-
     useEffect(() => {
         const map = mapRef.current;
         if (map?.isStyleLoaded()) setPharmacyData(map, data);
@@ -271,21 +289,33 @@ export function PharmacyMap({
             userMarkerRef.current = null;
             return;
         }
-        const lngLat: [number, number] = [
+        const target: [number, number] = [
             userLocation.longitude,
             userLocation.latitude,
         ];
-        if (userMarkerRef.current) {
-            userMarkerRef.current.setLngLat(lngLat);
-        } else {
+        const marker = userMarkerRef.current;
+        if (!marker) {
             userMarkerRef.current = new Marker({
                 element: createUserLocationElement(),
                 anchor: 'center',
             })
-                .setLngLat(lngLat)
+                .setLngLat(target)
                 .addTo(map);
+            setUserLocationStale(
+                userMarkerRef.current.getElement(),
+                latest.current.userLocationStale
+            );
+            return;
         }
+        return glideMarker(marker, target);
     }, [userLocation]);
+
+    useEffect(() => {
+        setUserLocationStale(
+            userMarkerRef.current?.getElement(),
+            userLocationStale
+        );
+    }, [userLocationStale]);
 
     return (
         <div

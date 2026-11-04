@@ -4,7 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { InfoDialog } from '@/components/InfoDialog';
-import { ControlGroup, NavigationControls } from '@/components/MapControls';
+import {
+    ControlGroup,
+    LocateControl,
+    ZoomControls,
+} from '@/components/MapControls';
 import {
     PharmacyMap,
     type PharmacyMapHandle,
@@ -22,8 +26,8 @@ import {
     type ShiftState,
 } from '@/lib/shift';
 import { GEOLOCATION_MESSAGES, useGeolocation } from '@/lib/use-geolocation';
-import { useColorScheme } from '@/lib/use-color-scheme';
 import { useOnline } from '@/lib/use-online';
+import { cn } from '@/lib/utils';
 
 const route = getRouteApi('/');
 
@@ -34,7 +38,6 @@ export function HomePage() {
     const { eczane: selectedId = null } = route.useSearch();
     const navigate = route.useNavigate();
     const mapRef = useRef<PharmacyMapHandle>(null);
-    const styleId = useColorScheme();
     const [initialCenter] = useState(readLastLocation);
     // Follow the user's position until they pan the map or pick a pharmacy;
     // a shared link opens on its pharmacy instead.
@@ -71,7 +74,7 @@ export function HomePage() {
     );
 
     const rows = useMemo<PanelRow[]>(() => {
-        const origin = geo.position;
+        const origin = geo.anchor;
         const withDistance = pharmacies.map((pharmacy) => ({
             pharmacy,
             state: states.get(pharmacy.id) ?? ('unknown' as ShiftState),
@@ -91,7 +94,7 @@ export function HomePage() {
             (row.distanceKm ?? 0) +
             (row.state === 'upcoming' ? UPCOMING_PENALTY_KM : 0);
         return withDistance.toSorted((a, b) => score(a) - score(b));
-    }, [pharmacies, states, geo.position]);
+    }, [pharmacies, states, geo.anchor]);
 
     const byId = useMemo(() => new Map(all.map((p) => [p.id, p])), [all]);
     const selected =
@@ -185,10 +188,10 @@ export function HomePage() {
         }
     }, [geo]);
 
-    const navigation = (
-        <NavigationControls
-            onZoomIn={() => mapRef.current?.zoomIn()}
-            onZoomOut={() => mapRef.current?.zoomOut()}
+    const zoomIn = () => mapRef.current?.zoomIn();
+    const zoomOut = () => mapRef.current?.zoomOut();
+    const locateControl = (
+        <LocateControl
             onLocate={locate}
             locating={geo.status === 'locating'}
             following={following && geo.position !== null}
@@ -199,11 +202,11 @@ export function HomePage() {
         <main className="relative h-dvh w-full overflow-hidden">
             <PharmacyMap
                 ref={mapRef}
-                styleId={styleId}
                 pharmacies={pharmacies}
                 upcomingIds={upcomingIds}
                 selectedId={selected?.id ?? null}
                 userLocation={geo.position}
+                userLocationStale={geo.stale}
                 initialCenter={initialCenter}
                 onSelect={(id) => {
                     if (id !== null) setFollowing(false);
@@ -213,7 +216,7 @@ export function HomePage() {
             />
 
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3 pt-[max(0.75rem,env(safe-area-inset-top))] md:p-4 [&>*]:pointer-events-auto">
-                <ControlGroup className="flex items-center gap-2 py-1.5 pl-1.5 pr-3 animate-in fade-in-0 slide-in-from-top-2 duration-500">
+                <ControlGroup className="flex h-10 items-center gap-2 pl-2 pr-3 animate-in fade-in-0 slide-in-from-top-2 duration-500">
                     <img
                         src="/nobetcim.webp"
                         alt=""
@@ -225,32 +228,47 @@ export function HomePage() {
                         nobetcim
                     </span>
                 </ControlGroup>
-                <div className="flex flex-col items-end gap-2">
-                    <InfoDialog
-                        missingCities={duties.data?.missingCities ?? []}
-                    />
-                    <div className="md:hidden">{navigation}</div>
+                <div className="flex flex-col items-end gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-500">
+                    <div className="flex items-start gap-2">
+                        <div className="md:hidden">
+                            <ZoomControls
+                                onZoomIn={zoomIn}
+                                onZoomOut={zoomOut}
+                                orientation="row"
+                            />
+                        </div>
+                        <InfoDialog
+                            missingCities={duties.data?.missingCities ?? []}
+                        />
+                    </div>
+                    <div className="md:hidden">{locateControl}</div>
                 </div>
             </div>
 
-            <div className="absolute bottom-4 right-4 hidden md:block">
-                {navigation}
+            <div className="absolute bottom-4 right-4 hidden flex-col items-end gap-2 md:flex">
+                <ZoomControls
+                    onZoomIn={zoomIn}
+                    onZoomOut={zoomOut}
+                    orientation="column"
+                />
+                {locateControl}
             </div>
 
             <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-4 md:left-4 md:w-[380px] md:p-0">
-                {selected ? (
-                    <PharmacyCard
-                        pharmacy={selected}
-                        state={shiftState(selected, now)}
-                        now={now}
-                        distanceKm={selectedDistance}
-                        onClose={() => select(null)}
-                    />
-                ) : (
+                {/* The list stays mounted under the card so closing the card
+                    returns to it as it was: search, expansion and scroll. */}
+                <div
+                    inert={selected !== null}
+                    className={cn(
+                        'transition-[opacity,transform] duration-200 ease-out',
+                        selected &&
+                            'pointer-events-none translate-y-2 opacity-0'
+                    )}
+                >
                     <NearbyPanel
-                        date={duties.data?.date ?? null}
                         rows={rows}
-                        hasLocation={geo.position !== null}
+                        ready={duties.data !== undefined}
+                        hasLocation={geo.anchor !== null}
                         accuracyM={geo.position?.accuracy ?? null}
                         geolocation={geo.status}
                         offlineSince={
@@ -262,6 +280,17 @@ export function HomePage() {
                         onLocate={locate}
                         onSelect={focusPharmacy}
                     />
+                </div>
+                {selected && (
+                    <div className="absolute inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] md:inset-x-0 md:bottom-0">
+                        <PharmacyCard
+                            pharmacy={selected}
+                            state={shiftState(selected, now)}
+                            now={now}
+                            distanceKm={selectedDistance}
+                            onClose={() => select(null)}
+                        />
+                    </div>
                 )}
             </div>
         </main>

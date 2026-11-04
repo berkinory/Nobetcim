@@ -15,10 +15,10 @@ import {
 } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { surface } from '@/components/ui/surface';
 import { preferredDirectionsUrl } from '@/lib/directions';
 import {
     formatDistance,
-    formatDutyDate,
     pharmacyDisplayName,
     searchKey,
     toTitleCaseTr,
@@ -42,7 +42,8 @@ export interface PanelRow {
 }
 
 interface NearbyPanelProps {
-    date: string | null;
+    /** The duty list has loaded at least once. */
+    ready: boolean;
     /** Already sorted: nearest (and open) first. */
     rows: readonly PanelRow[];
     hasLocation: boolean;
@@ -103,9 +104,7 @@ function LiveDot({ className }: { className?: string }) {
 function ShiftTag({ row }: { row: PanelRow }) {
     if (row.state === 'open') {
         return (
-            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                Açık
-            </span>
+            <span className="text-xs font-medium text-emerald-600">Açık</span>
         );
     }
     if (row.state === 'upcoming' && row.pharmacy.startsAt) {
@@ -127,7 +126,7 @@ function NearestHighlight({
 }) {
     const { pharmacy, distanceKm } = row;
     return (
-        <div className="mx-3 mb-3 rounded-lg border border-border bg-background p-3 animate-in fade-in-0 zoom-in-95 duration-300">
+        <div className="mx-3 mb-3 rounded-lg bg-muted/60 p-3 animate-in fade-in-0 zoom-in-95 duration-300">
             <button
                 type="button"
                 onClick={() => onSelect(pharmacy)}
@@ -198,7 +197,7 @@ function Skeleton() {
 }
 
 export function NearbyPanel({
-    date,
+    ready,
     rows: allRows,
     hasLocation,
     accuracyM,
@@ -242,7 +241,10 @@ export function NearbyPanel({
     return (
         <section
             aria-label="Nöbetçi eczane listesi"
-            className="pointer-events-auto flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl animate-in fade-in-0 slide-in-from-bottom-6 duration-500 ease-out"
+            className={cn(
+                surface,
+                'pointer-events-auto flex flex-col overflow-hidden animate-in fade-in-0 slide-in-from-bottom-6 duration-500 ease-out'
+            )}
         >
             <button
                 type="button"
@@ -261,11 +263,10 @@ export function NearbyPanel({
                                 : 'Nöbetçi eczaneler'}
                         </span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                            {date ? (
+                            {ready ? (
                                 <>
                                     <LiveDot />
-                                    {onDutyCount} eczane şu an nöbette ·{' '}
-                                    {formatDutyDate(date)}
+                                    {onDutyCount} eczane şu an nöbette
                                 </>
                             ) : (
                                 'Liste yükleniyor…'
