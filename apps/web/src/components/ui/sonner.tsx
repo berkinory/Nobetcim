@@ -4,7 +4,7 @@ import { Toaster as Sonner } from 'sonner';
 export function Toaster(props: ComponentProps<typeof Sonner>) {
     return (
         <Sonner
-            theme="system"
+            theme="light"
             className="toaster group"
             toastOptions={{
                 classNames: {

@@ -14,16 +14,34 @@ const CIRCLE_STEPS = 48;
  */
 export function createUserLocationElement(): HTMLElement {
     const root = document.createElement('div');
-    root.className = 'pointer-events-none relative';
+    root.className =
+        'pointer-events-none relative transition-opacity duration-500';
     root.setAttribute('aria-label', 'Konumunuz');
     const ripple =
         'absolute top-1/2 left-1/2 h-10 w-10 rounded-full border-2 border-blue-500 will-change-transform';
     root.innerHTML = `
         <div class="${ripple} animate-location-ripple"></div>
         <div class="${ripple} animate-location-ripple-delayed"></div>
-        <div class="relative z-10 h-5 w-5 rounded-full border-[3px] border-white bg-blue-600 shadow-lg"></div>
+        <div class="relative z-10 h-5 w-5 rounded-full border-[3px] border-white bg-blue-600 shadow-lg transition-colors duration-500"></div>
     `;
     return root;
+}
+
+// Kept as literals so Tailwind generates them.
+const STALE_CLASSES = [
+    'grayscale',
+    'opacity-60',
+    '[&_.animate-location-ripple]:hidden',
+    '[&_.animate-location-ripple-delayed]:hidden',
+];
+
+/** Greys the dot out (and stops the ripple) while the fix is old. */
+export function setUserLocationStale(
+    element: HTMLElement | undefined,
+    stale: boolean
+) {
+    if (!element) return;
+    for (const name of STALE_CLASSES) element.classList.toggle(name, stale);
 }
 
 /** Geodesic circle around the fix with the reported accuracy as radius. */

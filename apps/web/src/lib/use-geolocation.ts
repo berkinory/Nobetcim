@@ -29,6 +29,11 @@ const WATCH_OPTIONS: PositionOptions = {
     timeout: 20_000,
 };
 const MIN_MOVE_M = 10;
+// The list re-sorts only after this much movement, so rows do not shuffle
+// under the user's finger while they walk.
+const ANCHOR_MOVE_M = 25;
+// No fix for this long while tracking: the dot is shown as stale.
+const STALE_AFTER_MS = 45_000;
 
 export const GEOLOCATION_MESSAGES: Record<
     Exclude<GeolocationStatus, 'idle' | 'locating' | 'tracking'>,
@@ -62,7 +67,11 @@ export function shouldAccept(previous: Fix | null, next: Fix): boolean {
 export function useGeolocation() {
     const [status, setStatus] = useState<GeolocationStatus>('idle');
     const [position, setPosition] = useState<Fix | null>(null);
+    const [anchor, setAnchor] = useState<Fix | null>(null);
+    const [stale, setStale] = useState(false);
     const watchId = useRef<number | null>(null);
+    const anchorRef = useRef<Fix | null>(null);
+    const staleTimer = useRef<number | undefined>(undefined);
     const last = useRef<Fix | null>(null);
     // True while the user wants tracking; survives background pauses.
     const wanted = useRef(false);
@@ -88,10 +97,25 @@ export function useGeolocation() {
                 return;
             }
             setStatus('tracking');
+            setStale(false);
+            window.clearTimeout(staleTimer.current);
+            staleTimer.current = window.setTimeout(
+                () => setStale(true),
+                STALE_AFTER_MS
+            );
             if (!shouldAccept(last.current, next)) return;
             last.current = next;
             writeLastLocation(next);
             setPosition(next);
+            const previousAnchor = anchorRef.current;
+            if (
+                !previousAnchor ||
+                distanceKm(previousAnchor, next) * 1000 >= ANCHOR_MOVE_M ||
+                next.accuracy < previousAnchor.accuracy * 0.5
+            ) {
+                anchorRef.current = next;
+                setAnchor(next);
+            }
         },
         [clearWatch]
     );
@@ -181,5 +205,12 @@ export function useGeolocation() {
         };
     }, [start, clearWatch]);
 
-    return { status, position, start };
+    useEffect(() => () => window.clearTimeout(staleTimer.current), []);
+
+    /**
+     * `position`: every accepted fix, for the map dot and camera.
+     * `anchor`: the position the list is sorted and measured from; moves in
+     * 25 m steps. `stale`: no fix for a while (tunnel, indoors).
+     */
+    return { status, position, anchor, stale, start };
 }
