@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.venv/
+__pycache__/
+*.py[cod]
+
+# build output and tool caches
+dist/
+.turbo/
+.vite/
+*.tsbuildinfo
+.ruff_cache/
+.pytest_cache/
+node-compile-cache/
+
+# env files (keep the committed examples)
+.env
+.env.*
+!.env.example
+
+# benchmark output
+apps/web/bench/results/
+
+# logs
+*.log
+npm-debug.log*
+
+# editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

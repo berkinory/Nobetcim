@@ -1,0 +1,26 @@
+{
+    "name": "nobetcim",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "scripts": {
+        "dev": "turbo run dev",
+        "build": "turbo run build",
+        "typecheck": "turbo run typecheck",
+        "test": "turbo run test",
+        "lint": "oxlint && turbo run lint",
+        "format": "oxfmt && turbo run format",
+        "format:check": "oxfmt --check && turbo run format:check",
+        "db:migrate": "bun run --filter @nobetcim/api db:migrate",
+        "bench": "bun run --filter @nobetcim/web bench"
+    },
+    "devDependencies": {
+        "oxfmt": "0.76.0",
+        "oxlint": "1.91.0",
+        "turbo": "2.11.10",
+        "typescript": "6.0.3"
+    },
+    "packageManager": "bun@1.4.4"
+}

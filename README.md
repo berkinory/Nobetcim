@@ -1,7 +1,7 @@
 # nobetcim.app
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/berkinory/nobetcim/main/web/public/nobetcim.webp" alt="Nobetcim Logo" width="120"/>
+  <img src="https://raw.githubusercontent.com/berkinory/nobetcim/main/apps/web/public/nobetcim.webp" alt="Nobetcim Logo" width="120"/>
 </p>
 
 <p align="center">
@@ -12,75 +12,86 @@
   <a href="https://nobetcim.app" target="_blank"><strong>nobetcim.app »</strong></a>
 </p>
 
-<p align="center">
-    <img src="https://img.shields.io/github/license/berkinory/nobetcim?style=social" alt="License">
-</p>
+## About
 
-## About The Project
+**nobetcim.app** shows every on-duty pharmacy in Turkey on one map. Share your
+location to list the nearest ones, then call or get directions in one tap. It
+is a free, open-source public service.
 
-**nobetcim.app** is a project that aims to help people who need a pharmacy after hours throughout Turkey. By granting location access, you can see the nearest on-duty pharmacies on an interactive map, access their address and phone information, and get directions.
+Data comes from the Ministry of Health (TİTCK) duty lists on e-Devlet. Every
+scraped day is kept, so the database is also a history of on-duty pharmacies.
 
-This project is developed as a completely free and open-source public service.
+## Stack
 
-## Features
+| Part            | Technology                                                             |
+| --------------- | ---------------------------------------------------------------------- |
+| `apps/web`      | Vite, React 19, TanStack Router + Query, Tailwind CSS 4, MapLibre GL 6 |
+| `apps/api`      | Bun, Hono, Drizzle ORM. Serves the API and the built web app           |
+| `apps/scraper`  | Python 3.13, requests, BeautifulSoup, SQLAlchemy (managed with uv)     |
+| `db/migrations` | PostgreSQL schema, applied by the API on start                         |
+| Tooling         | Bun workspaces, Turborepo, oxlint, oxfmt, ruff                         |
 
--   **Location-Based Search:** Instantly find the nearest on-duty pharmacies to your location.
--   **Interactive Map:** View pharmacies on the map and easily understand their locations.
--   **Pharmacy Details:** Access information such as the name, address, phone number, and distance to your selected pharmacy.
--   **Directions:** Get directions with a single click via Google Maps and Apple Maps.
--   **Mobile-Friendly:** A modern interface that works seamlessly on phones, tablets, and computers.
--   **Open Source:** All code is transparently shared on GitHub.
+## Development
 
-## Technologies Used
+Requires Bun, uv and Docker.
 
-This project was built using modern web and data processing technologies.
+```bash
+bun install
+docker run -d --name nobetcim-db -p 5432:5432 \
+  -e POSTGRES_USER=nobetcim -e POSTGRES_PASSWORD=nobetcim -e POSTGRES_DB=nobetcim \
+  postgres:16-alpine
 
-| Category            | Technology                                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------------ |
-| **Frontend (Web)**  | `Next.js`, `React`, `Tailwind CSS`, `MapLibre GL`, `Drizzle ORM`   |
-| **Database**        | `PostgreSQL` (self-hosted via Docker Compose)                      |
-| **Backend (Parser)**| `Python`, `PostgreSQL`                                             |
+cp apps/web/.env.example apps/web/.env.local   # set VITE_MAPTILER_API_KEY
+export DATABASE_URL=postgresql://nobetcim:nobetcim@localhost:5432/nobetcim
 
-## Project Structure
+bun run dev     # api on :3001, web on :5173, scraper loop
+```
 
-The project consists of three main parts:
+The MapTiler key only accepts the production origin; the Vite dev server
+proxies MapTiler with that origin so local development still works.
 
--   `parser/`: A Python script that regularly scrapes on-duty pharmacy data from turkiye.gov.tr and saves it to PostgreSQL. Containerized with Docker.
--   `web/`: The Next.js frontend where users view pharmacies on the map. Reads data from PostgreSQL via Drizzle ORM.
--   `db/`: SQL migrations for the PostgreSQL schema.
+Scrape one city on demand: `cd apps/scraper && uv run python manual.py 34`.
+
+### Checks
+
+```bash
+bun run lint          # oxlint + ruff
+bun run format        # oxfmt + ruff format
+bun run typecheck
+bun run test
+bun run build
+```
+
+### Render benchmark
+
+`bun run bench` drives the same pan/zoom gestures on an emulated mid-range
+Android phone (412×915, DPR 2.6, 4× CPU throttle) against the live site and a
+local production build (`apps/api` on `:3001`), and reports frame times,
+long tasks and style/layout cost. `--stress 10000` adds a run with 10k
+synthetic pharmacies.
+
+## Data model
+
+- `city`: 81 provinces by plate code.
+- `pharmacy`: one row per physical pharmacy, with cached coordinates.
+- `duty`: one row per pharmacy per duty date, with the published shift window.
+- `city_scrape`: latest scrape outcome per city and date. Empty and failed
+  cities are retried with backoff; good lists are refreshed every 6 hours and
+  never overwritten by an empty response.
+
+The legacy `pharmacies` and `completed_cities` tables are left untouched by
+the `0001_history` migration, which backfills the new tables from them.
 
 ## Deployment
 
-All services run on the same Docker network. PostgreSQL is **not** exposed to the host — only `web` and internal services can reach it.
-
-```bash
-cp .env.example .env
-# set NEXT_PUBLIC_MAPTILER_API_KEY
-
-docker compose up -d --build
-```
-
-PostgreSQL credentials are hardcoded in the repo (`nobetcim` / `nobetcim`) and only reachable on the internal Docker network.
-
-To apply SQL migrations manually (e.g. after adding a new file under `db/migrations/`):
-
-```bash
-cd web && bun run db:migrate
-```
-
-Services:
-
-- `postgres` — internal database (init from `db/migrations/0000_initial.sql`)
-- `pharmacy-scraper` — scheduled scraper writing to PostgreSQL
-- `web` — Next.js app on port `1001`
+Coolify deploys `docker-compose.yml`: `postgres`, `web` (API + static app on
+port 1001) and `scraper`. Set `MAPTILER_API_KEY` in the Coolify environment.
 
 ## Contributing
 
-Your contributions can help make the project better. You can submit your ideas, bug reports, or code improvements by opening an "issue" or a "pull request".
+Ideas, bug reports and pull requests are welcome.
 
 ## Support
-
-If you like this project and want to support its development, you can do so via GitHub Sponsors. Your support will be a great source of motivation for the project's sustainability and the addition of new features.
 
 <a href="https://github.com/sponsors/berkinory">
   <img src="https://img.shields.io/badge/Sponsor%20on%20GitHub-EA4AAA.svg?style=for-the-badge&logo=GitHub-Sponsors&logoColor=white" alt="Sponsor on GitHub">
@@ -88,10 +99,8 @@ If you like this project and want to support its development, you can do so via 
 
 ## License
 
-This project is licensed under the **MIT License**. See the `LICENSE` file for more information.
+MIT. See `LICENSE`.
 
 ## Contact
 
 [![Email](https://img.shields.io/badge/Email-000000?style=for-the-badge&logo=gmail&logoColor=white)](mailto:berk@mirac.dev?subject=[GitHub])
-
----

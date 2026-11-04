@@ -1,0 +1,28 @@
+{
+    "$schema": "https://turborepo.com/schema.json",
+    "ui": "stream",
+    "tasks": {
+        "build": {
+            "dependsOn": ["^build"],
+            "inputs": ["$TURBO_DEFAULT$", ".env*"],
+            "env": ["VITE_*"],
+            "outputs": ["dist/**"]
+        },
+        "typecheck": {
+            "dependsOn": ["^typecheck"]
+        },
+        "test": {
+            "passThroughEnv": ["DATABASE_URL"]
+        },
+        "lint": {},
+        "format": {
+            "cache": false
+        },
+        "format:check": {},
+        "dev": {
+            "cache": false,
+            "persistent": true,
+            "passThroughEnv": ["DATABASE_URL", "PORT", "API_ORIGIN"]
+        }
+    }
+}

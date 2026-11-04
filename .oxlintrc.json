@@ -1,0 +1,36 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": [
+        "typescript",
+        "react",
+        "react-perf",
+        "jsx-a11y",
+        "import",
+        "unicorn",
+        "oxc"
+    ],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "warn",
+        "perf": "warn"
+    },
+    "rules": {
+        "react/react-in-jsx-scope": "off",
+        "react/rules-of-hooks": "error",
+        "react/exhaustive-deps": "warn",
+        "import/no-cycle": "error",
+        "unicorn/no-null": "off",
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react-perf/jsx-no-new-array-as-prop": "off",
+        "import/no-unassigned-import": [
+            "warn",
+            {
+                "allow": ["**/*.css"]
+            }
+        ],
+        "no-await-in-loop": "off",
+        "oxc/no-map-spread": "off"
+    },
+    "ignorePatterns": ["**/routeTree.gen.ts", "**/dist/**", "apps/scraper/**"]
+}
