@@ -1,6 +1,6 @@
 'use client';
 
-import '@/lib/openanalytics';
+import '@/lib/invisit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
