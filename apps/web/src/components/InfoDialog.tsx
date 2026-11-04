@@ -1,5 +1,5 @@
-import { Info } from 'lucide-react';
-import { useState } from 'react';
+import { Clock, Info, MapPin, Phone, ShieldCheck, WifiOff } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { FaGithub, FaSquareXTwitter } from 'react-icons/fa6';
 
 import { ControlGroup } from '@/components/MapControls';
@@ -12,6 +12,19 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 
+function Feature({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+    return (
+        <li className="flex gap-3">
+            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground [&_svg]:h-3.5 [&_svg]:w-3.5">
+                {icon}
+            </span>
+            <span className="text-sm leading-relaxed text-muted-foreground">
+                {children}
+            </span>
+        </li>
+    );
+}
+
 export function InfoDialog({ missingCities }: { missingCities: string[] }) {
     const [open, setOpen] = useState(false);
 
@@ -22,7 +35,7 @@ export function InfoDialog({ missingCities }: { missingCities: string[] }) {
                     variant="outline"
                     size="icon"
                     onClick={() => setOpen(true)}
-                    aria-label="Uygulama hakkında"
+                    aria-label="Hakkında"
                     className="h-9 w-9 md:h-10 md:w-10"
                 >
                     <Info />
@@ -30,119 +43,116 @@ export function InfoDialog({ missingCities }: { missingCities: string[] }) {
             </ControlGroup>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto rounded-lg sm:max-w-md">
+                <DialogContent className="max-h-[88dvh] w-[calc(100vw-2rem)] max-w-md gap-5 overflow-y-auto rounded-xl">
                     <DialogHeader>
-                        <div className="mb-2 flex items-start gap-3">
+                        <div className="flex items-center gap-3">
                             <img
                                 src="/nobetcim.webp"
                                 alt=""
-                                width={32}
-                                height={32}
+                                width={40}
+                                height={40}
                                 className="rounded-lg"
                             />
-                            <div className="flex flex-col">
+                            <div className="flex flex-col gap-1">
                                 <DialogTitle className="text-left">
                                     nobetcim.app
                                 </DialogTitle>
-                                <DialogDescription className="mt-0 text-left text-xs">
-                                    Ücretsiz Nöbetçi Eczane Servisi
+                                <DialogDescription className="text-left text-xs">
+                                    Türkiye nöbetçi eczane haritası
                                 </DialogDescription>
                             </div>
                         </div>
                     </DialogHeader>
 
-                    <div className="space-y-4">
-                        <div className="font-mono text-sm leading-relaxed">
-                            <p>
-                                merhaba ben{' '}
-                                <span className="font-medium">miraç</span>,
-                            </p>
-                            <p>
-                                bu sitenin kodları tamamen{' '}
-                                <span className="font-medium text-primary">
-                                    açık kaynak
-                                </span>{' '}
-                                olarak GitHub'da paylaşılmıştır ve hiçbir kâr
-                                amacı gütmeden halka açık bir şekilde servis
-                                edilmektedir.
-                            </p>
-                        </div>
+                    <p className="text-sm leading-relaxed">
+                        nobetcim.app, Türkiye genelinde o an nöbette olan
+                        eczaneleri tek bir haritada gösteren ücretsiz ve açık
+                        kaynaklı bir kamu hizmetidir. Reklam içermez; konumunuz
+                        yalnızca cihazınızda kullanılır ve hiçbir sunucuya
+                        gönderilmez.
+                    </p>
 
-                        <div>
-                            <h4 className="mb-2 font-medium">Kullanım</h4>
-                            <ul className="space-y-1 text-sm text-muted-foreground">
-                                <li>
-                                    • Türkiye'deki tüm nöbetçi eczaneler
-                                    haritada gösterilir.
-                                </li>
-                                <li>
-                                    • Konum izni verirseniz size en yakın
-                                    olanlar listelenir.
-                                </li>
-                                <li>
-                                    • Eczaneye dokunarak telefon, adres ve yol
-                                    tarifine ulaşın.
-                                </li>
-                                <li>
-                                    • Şu an nöbette olanlar listenin başında;
-                                    nöbeti henüz başlamayanlar soluk gösterilir,
-                                    nöbeti bitenler kendiliğinden kalkar.
-                                </li>
-                                <li>
-                                    • Uygulama son listeyi saklar; internet
-                                    yokken de açılır.
-                                </li>
-                            </ul>
-                        </div>
+                    <section>
+                        <h3 className="mb-3 text-sm font-semibold">
+                            Nasıl çalışır
+                        </h3>
+                        <ul className="space-y-3">
+                            <Feature icon={<MapPin />}>
+                                Haritada şu an nöbette olan tüm eczaneler yer
+                                alır. Nöbeti henüz başlamamış olanlar soluk
+                                gösterilir, nöbeti biten eczaneler kendiliğinden
+                                kaldırılır.
+                            </Feature>
+                            <Feature icon={<Phone />}>
+                                Konum izni verdiğinizde en yakın nöbetçi
+                                eczaneler mesafeye göre sıralanır. Bir eczaneye
+                                dokunarak arayabilir, adresini görebilir ve yol
+                                tarifi alabilirsiniz.
+                            </Feature>
+                            <Feature icon={<WifiOff />}>
+                                Son yüklenen liste cihazınızda saklanır;
+                                bağlantınız olmadığında da görüntülenebilir.
+                            </Feature>
+                        </ul>
+                    </section>
 
-                        <div>
-                            <h4 className="mb-2 font-medium">Nöbet saatleri</h4>
-                            <p className="text-sm text-muted-foreground">
-                                Her eczanenin nöbet başlangıç ve bitiş saati, il
-                                sağlık müdürlüğünce onaylanmış resmi listeden
-                                alınır. Saatler ile göre değişir; çoğu nöbet
-                                akşam 17:00 ile 19:00 arasında başlar, ertesi
-                                sabah 08:00 ile 09:00 arasında biter. Bazı
-                                eczaneler yalnızca gece yarısına kadar nöbet
-                                tutar.
-                            </p>
-                        </div>
-
-                        <div className="text-xs leading-relaxed text-muted-foreground">
-                            Veriler e-Devlet üzerinden Sağlık Bakanlığı (TİTCK)
-                            kayıtlarından alınır. Nöbet listeleri gün içinde
-                            değişebilir; gitmeden önce eczaneyi aramanızı
+                    <section>
+                        <h3 className="mb-3 text-sm font-semibold">
+                            Veri kaynağı ve nöbet saatleri
+                        </h3>
+                        <ul className="space-y-3">
+                            <Feature icon={<ShieldCheck />}>
+                                Nöbet listeleri, il sağlık müdürlüklerince
+                                onaylanarak e-Devlet üzerinden yayımlanan
+                                Türkiye İlaç ve Tıbbi Cihaz Kurumu (TİTCK)
+                                kayıtlarından alınır ve gün boyunca düzenli
+                                olarak güncellenir.
+                            </Feature>
+                            <Feature icon={<Clock />}>
+                                Her eczanenin nöbet başlangıç ve bitiş saati bu
+                                resmi listeden gelir. Saatler ile göre değişir;
+                                nöbetler genellikle akşam başlar ve ertesi sabah
+                                sona erer.
+                            </Feature>
+                        </ul>
+                        <p className="mt-3 rounded-lg border border-border bg-muted/50 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                            Nöbet listeleri zorunlu hallerde değiştirilebilir.
+                            Eczaneye gitmeden önce telefonla teyit etmenizi
                             öneririz.
-                            {missingCities.length > 0 && (
-                                <p className="mt-2">
-                                    Bu nöbet için liste yayınlanmayan iller:{' '}
-                                    {missingCities.join(', ')}.
-                                </p>
-                            )}
-                        </div>
+                        </p>
+                        {missingCities.length > 0 && (
+                            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                                <span className="font-medium text-foreground">
+                                    Liste yayımlanmayan iller:
+                                </span>{' '}
+                                {missingCities.join(', ')}. Bu iller için resmi
+                                kaynakta henüz nöbet bilgisi bulunmuyor.
+                            </p>
+                        )}
+                    </section>
 
-                        <div className="border-t pt-4">
-                            <div className="flex items-center justify-center gap-4">
-                                <a
-                                    href="https://x.com/berkinory"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                                >
-                                    <FaSquareXTwitter size={20} />X
-                                </a>
-                                <a
-                                    href="https://github.com/berkinory/nobetcim"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
-                                >
-                                    <FaGithub size={20} />
-                                    GitHub
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+                    <footer className="flex items-center justify-between border-t border-border pt-4 text-xs text-muted-foreground">
+                        <span>Açık kaynak · MIT lisansı</span>
+                        <span className="flex items-center gap-4">
+                            <a
+                                href="https://github.com/berkinory/nobetcim"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 transition-colors hover:text-foreground"
+                            >
+                                <FaGithub size={16} />
+                                GitHub
+                            </a>
+                            <a
+                                href="https://x.com/berkinory"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 transition-colors hover:text-foreground"
+                            >
+                                <FaSquareXTwitter size={16} />X
+                            </a>
+                        </span>
+                    </footer>
                 </DialogContent>
             </Dialog>
         </>
